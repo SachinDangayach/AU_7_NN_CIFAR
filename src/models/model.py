@@ -306,6 +306,56 @@ class CIFAR10Net(nn.Module):
                 in_channels=config.c5_out_channels,
                 out_channels=config.c5_out_channels,
                 dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c5_out_channels,
+                out_channels=config.c5_out_channels,
+                dropout_rate=config.dropout_rate
             )
         )
         
@@ -313,7 +363,7 @@ class CIFAR10Net(nn.Module):
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
         
         # Fully Connected layer after GAP
-        self.classifier = nn.Linear(config.fc_hidden_size, config.num_classes)
+        self.classifier = nn.Linear(config.c5_out_channels, config.num_classes)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -339,7 +389,7 @@ class CIFAR10Net(nn.Module):
         x = self.conv_block_2(x)  # Output: 32x32, RF = 9
         
         # Conv Block 3: 32x32 -> 32x32 (Dilated Convolution)
-        # Conv1: 3x3 kernel with dilation=2, RF = 9 + (3-1)*2 = 13
+        # Conv1: 3x3 kernel with dilation=2, effective kernel=5, RF = 9 + (5-1)*1 = 13
         # Conv2: 3x3 kernel, RF = 13 + (3-1)*1 = 15
         x = self.conv_block_3(x)  # Output: 32x32, RF = 15
         
@@ -351,11 +401,21 @@ class CIFAR10Net(nn.Module):
         # Conv Block 5: 16x16 -> 16x16 (Additional layers for RF > 44)
         # Conv1: 3x3 kernel, RF = 21 + (3-1)*1 = 23
         # Conv2: 3x3 kernel, RF = 23 + (3-1)*1 = 25
-        x = self.conv_block_5(x)  # Output: 16x16, RF = 25
+        # Conv3: 3x3 kernel, RF = 25 + (3-1)*1 = 27
+        # Conv4: 3x3 kernel, RF = 27 + (3-1)*1 = 29
+        # Conv5: 3x3 kernel, RF = 29 + (3-1)*1 = 31
+        # Conv6: 3x3 kernel, RF = 31 + (3-1)*1 = 33
+        # Conv7: 3x3 kernel, RF = 33 + (3-1)*1 = 35
+        # Conv8: 3x3 kernel, RF = 35 + (3-1)*1 = 37
+        # Conv9: 3x3 kernel, RF = 37 + (3-1)*1 = 39
+        # Conv10: 3x3 kernel, RF = 39 + (3-1)*1 = 41
+        # Conv11: 3x3 kernel, RF = 41 + (3-1)*1 = 43
+        # Conv12: 3x3 kernel, RF = 43 + (3-1)*1 = 45
+        x = self.conv_block_5(x)  # Output: 16x16, RF = 45
         
         # Global Average Pooling: 16x16 -> 1x1
-        # GAP: RF remains the same as input, RF = 25
-        x = self.global_avg_pool(x)  # Output: 1x1, RF = 25
+        # GAP: RF remains the same as input, RF = 45
+        x = self.global_avg_pool(x)  # Output: 1x1, RF = 45
         
         # Flatten and classify
         x = x.view(x.size(0), -1)
@@ -374,11 +434,11 @@ class CIFAR10Net(nn.Module):
         return {
             "Conv Block 1": {"output_size": "32x32", "receptive_field": 5},
             "Conv Block 2": {"output_size": "32x32", "receptive_field": 9},
-            "Conv Block 3": {"output_size": "32x32", "receptive_field": 17},
-            "Conv Block 4": {"output_size": "16x16", "receptive_field": 25},
-            "Conv Block 5": {"output_size": "16x16", "receptive_field": 33},
-            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 33},
-            "Total RF": 33
+            "Conv Block 3": {"output_size": "32x32", "receptive_field": 15},
+            "Conv Block 4": {"output_size": "16x16", "receptive_field": 21},
+            "Conv Block 5": {"output_size": "16x16", "receptive_field": 45},
+            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45},
+            "Total RF": 45
         }
 
 

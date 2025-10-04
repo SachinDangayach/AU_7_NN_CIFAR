@@ -1,0 +1,11 @@
+2025-10-03 20:49:21,704 - INFO - Starting training...
+2025-10-03 20:49:21,705 - INFO - Device: cpu
+2025-10-03 20:49:21,705 - INFO - Epochs: 50
+2025-10-03 20:49:21,706 - INFO - Learning Rate: 0.1
+2025-10-03 20:49:21,706 - INFO - Scheduler: OneCycleLR
+2025-10-03 20:51:52,519 - INFO - New best model saved! Val Acc: 27.89%
+2025-10-03 20:51:52,520 - INFO - Epoch 1/50 - Train Loss: 2.1359, Train Acc: 18.44% - Val Loss: 1.9109, Val Acc: 27.89% - LR: 0.005049 - Time: 150.81s
+2025-10-03 20:54:21,862 - INFO - New best model saved! Val Acc: 32.75%
+2025-10-03 20:54:21,863 - INFO - Epoch 2/50 - Train Loss: 1.9674, Train Acc: 25.73% - Val Loss: 1.8229, Val Acc: 32.75% - LR: 0.008151 - Time: 149.34s
+2025-10-03 20:54:54,227 - INFO - Best model loaded from best_model.pth
+2025-10-03 20:55:01,891 - INFO - Best model loaded from best_model.pth

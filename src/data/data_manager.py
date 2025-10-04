@@ -39,16 +39,20 @@ class AlbumentationTransform:
     def __init__(self, transforms: A.Compose):
         self.transforms = transforms
         
-    def __call__(self, image: np.ndarray) -> torch.Tensor:
+    def __call__(self, image) -> torch.Tensor:
         """
         Apply transforms to the input image.
         
         Args:
-            image: Input image as numpy array
+            image: Input image as PIL Image or numpy array
             
         Returns:
             Transformed image as PyTorch tensor
         """
+        # Convert PIL Image to numpy array if needed
+        if hasattr(image, 'mode'):  # PIL Image
+            image = np.array(image)
+        
         return self.transforms(image=image)['image']
 
 

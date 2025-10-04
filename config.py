@@ -22,24 +22,24 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block 1 (C1) - Standard convolutions
-    c1_out_channels: int = 32
+    c1_out_channels: int = 2
     
     # Conv Block 2 (C2) - Depthwise Separable Convolution
-    c2_out_channels: int = 64
+    c2_out_channels: int = 4
     
     # Conv Block 3 (C3) - Dilated Convolution
-    c3_out_channels: int = 128
+    c3_out_channels: int = 8
     c3_dilation: int = 2
     
     # Conv Block 4 (C40) - Stride=2 instead of MaxPooling
-    c4_out_channels: int = 256
+    c4_out_channels: int = 16
     c4_stride: int = 2
     
     # Conv Block 5 - Additional layers for RF > 44
-    c5_out_channels: int = 512
+    c5_out_channels: int = 32
     
     # Global Average Pooling + FC
-    fc_hidden_size: int = 512
+    fc_hidden_size: int = 32
     
     # Parameter constraints
     max_parameters: int = 200000
@@ -107,6 +107,10 @@ class TrainingConfig:
     
     # Performance targets
     target_accuracy: float = 85.0
+    
+    # Logging
+    log_level: str = "INFO"
+    log_file: str = "training.log"
 
 
 @dataclass
@@ -140,10 +144,6 @@ class ProjectConfig:
     project_name: str = "Advanced CIFAR-10 Classification"
     version: str = "1.0.0"
     author: str = "EVA5 Student"
-    
-    # Logging
-    log_level: str = "INFO"
-    log_file: str = "training.log"
 
 
 def get_config() -> ProjectConfig:
