@@ -57,6 +57,9 @@ class DataConfig:
     num_workers: int = 4
     pin_memory: bool = True
     
+    # Reproducibility
+    seed: int = 1
+    
     # Normalization (calculated from CIFAR-10 dataset)
     mean: Tuple[float, float, float] = (0.49, 0.48, 0.45)
     std: Tuple[float, float, float] = (0.25, 0.24, 0.26)
