@@ -22,18 +22,17 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block 1 (C1) - Standard convolutions
-    c1_out_channels: int = 8
+    c1_out_channels: int = 10
     
     # Conv Block 2 (C2) - Depthwise Separable Convolution
-    c2_out_channels: int = 12
+    c2_out_channels: int = 16
     
     # Conv Block 3 (C3) - Dilated Convolution
-    c3_out_channels: int = 16
+    c3_out_channels: int = 22
     c3_dilation: int = 2
     
-    # Conv Block 4 (C40) - Stride=2 instead of MaxPooling
-    c4_out_channels: int = 32
-    c4_stride: int = 2
+    # Conv Block 4 (C40) - Dilated Convolution for downsampling
+    c4_out_channels: int = 28
     
     # Conv Block 5 - Additional layers for RF > 44
     c5_out_channels: int = 36
@@ -87,16 +86,16 @@ class TrainingConfig:
     
     # Training settings
     epochs: int = 50  # kept for backward compat / some schedulers
-    max_epochs: int = 100  # hard ceiling for training duration
-    learning_rate: float = 0.1
+    max_epochs: int = 50  # hard ceiling for training duration
+    learning_rate: float = 0.01  # Reduced from 0.1 for better stability
     momentum: float = 0.9
     weight_decay: float = 1e-4
     
     # Scheduler settings
-    scheduler_type: str = "OneCycleLR"
-    max_lr: float = 0.1
-    scheduler_epochs: int = 100
-    step_lr_step_size: int = 20
+    scheduler_type: str = "StepLR"  # Changed to StepLR for step size control
+    max_lr: float = 0.01
+    scheduler_epochs: int = 50
+    step_lr_step_size: int = 10  # Step size of 10 as requested
     
     # Device settings
     device: str = "auto"  # "auto", "cuda", "cpu"
