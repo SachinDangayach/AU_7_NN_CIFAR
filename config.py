@@ -92,11 +92,11 @@ class TrainingConfig:
     momentum: float = 0.9
     weight_decay: float = 1e-4
     
-            # Scheduler settings
-            scheduler_type: str = "OneCycleLR"
-            max_lr: float = 0.1
-            scheduler_epochs: int = 100
-            step_lr_step_size: int = 20
+    # Scheduler settings
+    scheduler_type: str = "OneCycleLR"
+    max_lr: float = 0.1
+    scheduler_epochs: int = 100
+    step_lr_step_size: int = 20
     
     # Device settings
     device: str = "auto"  # "auto", "cuda", "cpu"

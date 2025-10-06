@@ -445,7 +445,6 @@ This project is part of the EVA5 course curriculum and follows the specified req
 
 ## 🎉 Acknowledgments
 
-- EVA5 Course for the project requirements
 - PyTorch team for the deep learning framework
 - Albumentation team for the data augmentation library
 - CIFAR-10 dataset creators
