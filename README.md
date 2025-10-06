@@ -72,23 +72,23 @@ The `CIFAR10Net` model follows a specific convolutional block pattern:
 Input: 32x32x3 (CIFAR-10 images)
 │
 ├── Conv Block 1 (C1): 32x32 → 32x32, RF=5
-│   ├── Conv2d(3→4, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(4→4, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│
-├── Conv Block 2 (C2): 32x32 → 32x32, RF=9 (Depthwise Separable)
-│   ├── DepthwiseSeparableConv(4→8, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(3→8, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │   └── Conv2d(8→8, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
+├── Conv Block 2 (C2): 32x32 → 32x32, RF=9 (Depthwise Separable)
+│   ├── DepthwiseSeparableConv(8→12, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(12→12, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│
 ├── Conv Block 3 (C3): 32x32 → 32x32, RF=15 (Dilated Convolution)
-│   ├── Conv2d(8→16, 3x3, dilation=2) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(12→16, 3x3, dilation=2) + ReLU + BatchNorm + Dropout(0.1)
 │   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 4 (C40): 32x32 → 16x16, RF=21 (Stride=2)
-│   ├── Conv2d(16→16, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(16→24, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(24→24, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 5: 16x16 → 4x4, RF=45 (Optimized: 2 stride=2 operations)
-│   ├── Conv2d(16→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(24→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
 │   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
@@ -108,21 +108,21 @@ Input: 32x32x3 (CIFAR-10 images)
 
 #### Conv Block 1 (C1) - Standard Convolutions
 - **Input**: 3×32×32
-- **Output**: 32×32×4
+- **Output**: 32×32×8
 - **Receptive Field**: 5
 - **Parameters**: ~1K
 - **Layers**: 2× Conv2d(3x3) + ReLU + BatchNorm + Dropout
 
 #### Conv Block 2 (C2) - Depthwise Separable Convolution
-- **Input**: 32×32×4
-- **Output**: 32×32×8
+- **Input**: 32×32×8
+- **Output**: 32×32×12
 - **Receptive Field**: 9
 - **Parameters**: ~2K
 - **Feature**: Depthwise Separable Convolution (reduces parameters)
 - **Layers**: DepthwiseSeparableConv + Conv2d + ReLU + BatchNorm + Dropout
 
 #### Conv Block 3 (C3) - Dilated Convolution
-- **Input**: 32×32×8
+- **Input**: 32×32×12
 - **Output**: 32×32×16
 - **Receptive Field**: 15
 - **Parameters**: ~8K
@@ -131,14 +131,14 @@ Input: 32x32x3 (CIFAR-10 images)
 
 #### Conv Block 4 (C40) - Stride=2 Instead of MaxPooling
 - **Input**: 32×32×16
-- **Output**: 16×16×16
+- **Output**: 16×16×24
 - **Receptive Field**: 21
 - **Parameters**: ~20K
 - **Feature**: Stride=2 convolution (replaces MaxPooling)
 - **Layers**: Conv2d(stride=2) + Conv2d + ReLU + BatchNorm + Dropout
 
 #### Conv Block 5 - Optimized: 2 stride=2 operations
-- **Input**: 16×16×16
+- **Input**: 16×16×24
 - **Output**: 4×4×32
 - **Receptive Field**: 45
 - **Parameters**: ~66K
@@ -178,7 +178,7 @@ The receptive field grows through each layer following the formula: `RF_new = RF
 | GAP | - | - | - | No change | 45 |
 
 ### Model Summary
-- **Total Parameters**: 97,658 (well under 200k limit)
+- **Total Parameters**: 105,994 (well under 200k limit)
 - **Receptive Field**: 45 (meets >44 requirement)
 - **Input Size**: 32x32x3 (CIFAR-10 standard)
 - **Output**: 10 classes (CIFAR-10 categories)
@@ -307,10 +307,10 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block channels (optimized for < 200K parameters)
-    c1_out_channels: int = 4       # Conv Block 1
-    c2_out_channels: int = 8       # Conv Block 2 (Depthwise Separable)
+    c1_out_channels: int = 8       # Conv Block 1
+    c2_out_channels: int = 12      # Conv Block 2 (Depthwise Separable)
     c3_out_channels: int = 16      # Conv Block 3 (Dilated)
-    c4_out_channels: int = 16      # Conv Block 4 (Stride=2)
+    c4_out_channels: int = 24      # Conv Block 4 (Stride=2)
     c5_out_channels: int = 32      # Conv Block 5 (Optimized with stride=2)
     
     # Special parameters
@@ -347,11 +347,11 @@ The model uses an optimized C1C2C3C40 architecture with the following key featur
 ### Parameter Efficiency
 - **Channel Sizes**: Optimized to keep parameters under 200K
 - **Depthwise Separable**: Used in Conv Block 2 for parameter reduction
-- **Current Parameters**: ~97K (well under 200K limit)
+- **Current Parameters**: ~106K (well under 200K limit)
 
 ## 📈 Expected Performance
 
-- **Parameters**: 97,658 (< 200k requirement ✓)
+- **Parameters**: 105,994 (< 200k requirement ✓)
 - **Receptive Field**: 45 (> 44 requirement ✓)
 - **Target Accuracy**: 85%+ (with proper training)
 - **Training Time**: ~50 epochs with OneCycleLR scheduler

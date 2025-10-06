@@ -36,10 +36,10 @@ class ModelConfig:
     c4_stride: int = 2
     
     # Conv Block 5 - Additional layers for RF > 44
-    c5_out_channels: int = 36
+    c5_out_channels: int = 32
     
     # Global Average Pooling + FC
-    fc_hidden_size: int = 36
+    fc_hidden_size: int = 32
     
     # Parameter constraints
     max_parameters: int = 200000
