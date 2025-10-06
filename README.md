@@ -9,8 +9,8 @@ This project implements an advanced CIFAR-10 classification model with a **C1C2C
 ### ✅ Architecture Requirements
 - **C1C2C3C40 Structure**: Implemented without MaxPooling
 - **Stride=2**: Used in Conv Block 4 instead of MaxPooling  
-- **Receptive Field**: Total RF > 44 (achieved RF = 33+)
-- **Parameter Efficiency**: < 200k parameters
+- **Receptive Field**: Total RF > 44 (achieved RF = 45)
+- **Parameter Efficiency**: < 200k parameters (achieved 97,658 parameters)
 
 ### ✅ Advanced Convolutions
 - **Depthwise Separable Convolution**: Implemented in Conv Block 2
@@ -72,73 +72,76 @@ The `CIFAR10Net` model follows a specific convolutional block pattern:
 Input: 32x32x3 (CIFAR-10 images)
 │
 ├── Conv Block 1 (C1): 32x32 → 32x32, RF=5
-│   ├── Conv2d(3→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(3→4, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(4→4, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 2 (C2): 32x32 → 32x32, RF=9 (Depthwise Separable)
-│   ├── DepthwiseSeparableConv(32→64, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(64→64, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── DepthwiseSeparableConv(4→8, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(8→8, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 3 (C3): 32x32 → 32x32, RF=15 (Dilated Convolution)
-│   ├── Conv2d(64→128, 3x3, dilation=2) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(128→128, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(8→16, 3x3, dilation=2) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 4 (C40): 32x32 → 16x16, RF=21 (Stride=2)
-│   ├── Conv2d(128→256, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(256→256, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(16→16, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
-├── Conv Block 5: 16x16 → 16x16, RF=25 (Additional layers)
-│   ├── Conv2d(256→512, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(512→512, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+├── Conv Block 5: 16x16 → 8x8, RF=45 (Optimized with stride=2)
+│   ├── Conv2d(16→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   └── 8× Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
-├── Global Average Pooling: 16x16 → 1x1, RF=25
+├── Global Average Pooling: 8x8 → 1x1, RF=45
 │
-└── Classifier: Linear(512 → 10) + LogSoftmax
+└── Classifier: Linear(32 → 10) + LogSoftmax
 ```
 
 ### Detailed Layer Specifications
 
 #### Conv Block 1 (C1) - Standard Convolutions
 - **Input**: 3×32×32
-- **Output**: 32×32×32
+- **Output**: 32×32×4
 - **Receptive Field**: 5
 - **Parameters**: ~1K
 - **Layers**: 2× Conv2d(3x3) + ReLU + BatchNorm + Dropout
 
 #### Conv Block 2 (C2) - Depthwise Separable Convolution
-- **Input**: 32×32×32
-- **Output**: 32×32×64
+- **Input**: 32×32×4
+- **Output**: 32×32×8
 - **Receptive Field**: 9
 - **Parameters**: ~2K
 - **Feature**: Depthwise Separable Convolution (reduces parameters)
 - **Layers**: DepthwiseSeparableConv + Conv2d + ReLU + BatchNorm + Dropout
 
 #### Conv Block 3 (C3) - Dilated Convolution
-- **Input**: 32×32×64
-- **Output**: 32×32×128
+- **Input**: 32×32×8
+- **Output**: 32×32×16
 - **Receptive Field**: 15
 - **Parameters**: ~8K
 - **Feature**: Dilated Convolution (dilation=2)
 - **Layers**: Conv2d(dilation=2) + Conv2d + ReLU + BatchNorm + Dropout
 
 #### Conv Block 4 (C40) - Stride=2 Instead of MaxPooling
-- **Input**: 32×32×128
-- **Output**: 16×16×256
+- **Input**: 32×32×16
+- **Output**: 16×16×16
 - **Receptive Field**: 21
 - **Parameters**: ~20K
 - **Feature**: Stride=2 convolution (replaces MaxPooling)
 - **Layers**: Conv2d(stride=2) + Conv2d + ReLU + BatchNorm + Dropout
 
-#### Conv Block 5 - Additional Layers for RF > 44
-- **Input**: 16×16×256
-- **Output**: 16×16×512
-- **Receptive Field**: 25
-- **Parameters**: ~80K
-- **Layers**: 2× Conv2d(3x3) + ReLU + BatchNorm + Dropout
+#### Conv Block 5 - Optimized Layers for RF > 44
+- **Input**: 16×16×16
+- **Output**: 8×8×32
+- **Receptive Field**: 45
+- **Parameters**: ~66K
+- **Feature**: Optimized with stride=2 after 2 convolutions
+- **Layers**: 2× Conv2d + Conv2d(stride=2) + 8× Conv2d + ReLU + BatchNorm + Dropout
 
 #### Output Block
-- **Global Average Pooling**: 16×16×512 → 1×1×512
-- **FC Layer**: 512 → 10
+- **Global Average Pooling**: 8×8×32 → 1×1×32
+- **FC Layer**: 32 → 10
 - **Log Softmax**: Final output
 
 ### Receptive Field Calculations
@@ -158,15 +161,17 @@ The receptive field grows through each layer following the formula: `RF_new = RF
 | Conv4.2 | 3×3 | 1 | 1 | 19 + (3-1)×1 | 21 |
 | Conv5.1 | 3×3 | 1 | 1 | 21 + (3-1)×1 | 23 |
 | Conv5.2 | 3×3 | 1 | 1 | 23 + (3-1)×1 | 25 |
-| GAP | - | - | - | No change | 25 |
+| Conv5.3 (Stride=2) | 3×3 | 2 | 1 | 25 + (3-1)×2 | 29 |
+| Conv5.4-11 | 3×3 | 1 | 1 | 29 + 8×(3-1)×1 | 45 |
+| GAP | - | - | - | No change | 45 |
 
 ### Model Summary
-- **Total Parameters**: ~150,000 (well under 200k limit)
-- **Receptive Field**: 25 (meets >44 requirement with additional layers)
+- **Total Parameters**: 97,658 (well under 200k limit)
+- **Receptive Field**: 45 (meets >44 requirement)
 - **Input Size**: 32x32x3 (CIFAR-10 standard)
 - **Output**: 10 classes (CIFAR-10 categories)
 - **Architecture Compliance**: ✅ C1C2C3C40 structure
-- **Advanced Features**: ✅ Depthwise Separable + Dilated Convolution
+- **Advanced Features**: ✅ Depthwise Separable + Dilated Convolution + Optimized Conv Block 5
 
 ## 🚀 Quick Start
 
