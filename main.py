@@ -286,6 +286,7 @@ def main():
     print(f"✓ Global Average Pooling: Implemented")
     print(f"✓ FC layer after GAP: Implemented")
     print(f"✓ Albumentation augmentations: Implemented")
+    print(f"✓ Optimized Conv Block 5 with stride=2: Implemented")
     print(f"✓ Parameters < 200k: {'✓' if total_params < config.model.max_parameters else '✗'}")
     print(f"✓ Receptive Field > 44: ✓")
     

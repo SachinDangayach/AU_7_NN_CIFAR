@@ -22,13 +22,13 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block 1 (C1) - Standard convolutions
-    c1_out_channels: int = 2
+    c1_out_channels: int = 4
     
     # Conv Block 2 (C2) - Depthwise Separable Convolution
-    c2_out_channels: int = 4
+    c2_out_channels: int = 8
     
     # Conv Block 3 (C3) - Dilated Convolution
-    c3_out_channels: int = 8
+    c3_out_channels: int = 16
     c3_dilation: int = 2
     
     # Conv Block 4 (C40) - Stride=2 instead of MaxPooling
@@ -143,7 +143,7 @@ class ProjectConfig:
     # Project metadata
     project_name: str = "Advanced CIFAR-10 Classification"
     version: str = "1.0.0"
-    author: str = "EVA5 Student"
+    author: str = "ERA Student"
 
 
 def get_config() -> ProjectConfig:

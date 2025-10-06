@@ -54,24 +54,28 @@ Conv Block 4 (C40) - Stride=2 instead of MaxPooling:
   RF = 19 + (3-1)*1 = 21
 Output: 16x16, RF = 21
 
-Conv Block 5 - Additional layers for RF > 44:
+Conv Block 5 - Optimized layers for RF > 44 with stride=2:
 - Conv1: 3x3 kernel, stride=1, padding=1
   RF = 21 + (3-1)*1 = 23
 - Conv2: 3x3 kernel, stride=1, padding=1
   RF = 23 + (3-1)*1 = 25
-Output: 16x16, RF = 25
+- Conv3: 3x3 kernel, stride=2, padding=1 (stride=2 doubles RF growth)
+  RF = 25 + (3-1)*2 = 29
+- Conv4-11: 3x3 kernel, stride=1, padding=1 (8 additional layers)
+  RF = 29 + 8*(3-1)*1 = 29 + 16 = 45
+Output: 8x8, RF = 45
 
 Global Average Pooling:
 - GAP: RF remains the same as input
-  RF = 25 (no change)
-Output: 1x1, RF = 25
+  RF = 45 (no change)
+Output: 1x1, RF = 45
 
-FINAL RECEPTIVE FIELD: 25
+FINAL RECEPTIVE FIELD: 45
 Requirement: > 44
-Status: ❌ Does not meet requirement
+Status: ✅ Meets requirement
 
-Note: The current architecture achieves RF=25, which is less than the required 44.
-To meet the requirement, additional layers or different kernel sizes would be needed.
+Note: The optimized architecture uses stride=2 in Conv Block 5 to reduce spatial dimensions
+and reduce the number of convolutions needed while maintaining RF > 44.
 """ 
 
 import torch
@@ -295,8 +299,11 @@ class CIFAR10Net(nn.Module):
             )
         )
         
-        # Conv Block 5 - Additional layers for RF > 44
+        # Conv Block 5 - Optimized layers for RF > 44 with stride=2
+        # Uses stride=2 after 2 convolutions to reduce spatial dimensions
+        # and reduce the number of convolutions needed while maintaining RF > 44
         self.conv_block_5 = nn.Sequential(
+            # First two convolutions: 16x16 -> 16x16
             ConvBlock(
                 in_channels=config.c4_out_channels,
                 out_channels=config.c5_out_channels,
@@ -307,21 +314,14 @@ class CIFAR10Net(nn.Module):
                 out_channels=config.c5_out_channels,
                 dropout_rate=config.dropout_rate
             ),
+            # Third convolution with stride=2: 16x16 -> 8x8 (doubles RF growth)
             ConvBlock(
                 in_channels=config.c5_out_channels,
                 out_channels=config.c5_out_channels,
+                stride=2,
                 dropout_rate=config.dropout_rate
             ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
+            # Additional convolutions: 8x8 -> 8x8 (need more for RF > 44)
             ConvBlock(
                 in_channels=config.c5_out_channels,
                 out_channels=config.c5_out_channels,
@@ -398,22 +398,21 @@ class CIFAR10Net(nn.Module):
         # Conv2: 3x3 kernel, RF = 19 + (3-1)*1 = 21
         x = self.conv_block_4(x)  # Output: 16x16, RF = 21
         
-        # Conv Block 5: 16x16 -> 16x16 (Additional layers for RF > 44)
-        # Conv1: 3x3 kernel, RF = 21 + (3-1)*1 = 23
-        # Conv2: 3x3 kernel, RF = 23 + (3-1)*1 = 25
-        # Conv3: 3x3 kernel, RF = 25 + (3-1)*1 = 27
-        # Conv4: 3x3 kernel, RF = 27 + (3-1)*1 = 29
-        # Conv5: 3x3 kernel, RF = 29 + (3-1)*1 = 31
-        # Conv6: 3x3 kernel, RF = 31 + (3-1)*1 = 33
-        # Conv7: 3x3 kernel, RF = 33 + (3-1)*1 = 35
-        # Conv8: 3x3 kernel, RF = 35 + (3-1)*1 = 37
-        # Conv9: 3x3 kernel, RF = 37 + (3-1)*1 = 39
-        # Conv10: 3x3 kernel, RF = 39 + (3-1)*1 = 41
-        # Conv11: 3x3 kernel, RF = 41 + (3-1)*1 = 43
-        # Conv12: 3x3 kernel, RF = 43 + (3-1)*1 = 45
-        x = self.conv_block_5(x)  # Output: 16x16, RF = 45
+        # Conv Block 5: 16x16 -> 8x8 (Optimized layers for RF > 44)
+        # Conv1: 3x3 kernel, stride=1, RF = 21 + (3-1)*1 = 23
+        # Conv2: 3x3 kernel, stride=1, RF = 23 + (3-1)*1 = 25
+        # Conv3: 3x3 kernel, stride=2, RF = 25 + (3-1)*2 = 29 (stride=2 doubles RF growth)
+        # Conv4: 3x3 kernel, stride=1, RF = 29 + (3-1)*1 = 31
+        # Conv5: 3x3 kernel, stride=1, RF = 31 + (3-1)*1 = 33
+        # Conv6: 3x3 kernel, stride=1, RF = 33 + (3-1)*1 = 35
+        # Conv7: 3x3 kernel, stride=1, RF = 35 + (3-1)*1 = 37
+        # Conv8: 3x3 kernel, stride=1, RF = 37 + (3-1)*1 = 39
+        # Conv9: 3x3 kernel, stride=1, RF = 39 + (3-1)*1 = 41
+        # Conv10: 3x3 kernel, stride=1, RF = 41 + (3-1)*1 = 43
+        # Conv11: 3x3 kernel, stride=1, RF = 43 + (3-1)*1 = 45
+        x = self.conv_block_5(x)  # Output: 8x8, RF = 45
         
-        # Global Average Pooling: 16x16 -> 1x1
+        # Global Average Pooling: 8x8 -> 1x1
         # GAP: RF remains the same as input, RF = 45
         x = self.global_avg_pool(x)  # Output: 1x1, RF = 45
         
@@ -436,7 +435,7 @@ class CIFAR10Net(nn.Module):
             "Conv Block 2": {"output_size": "32x32", "receptive_field": 9},
             "Conv Block 3": {"output_size": "32x32", "receptive_field": 15},
             "Conv Block 4": {"output_size": "16x16", "receptive_field": 21},
-            "Conv Block 5": {"output_size": "16x16", "receptive_field": 45},
+            "Conv Block 5": {"output_size": "8x8", "receptive_field": 45},
             "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45},
             "Total RF": 45
         }
