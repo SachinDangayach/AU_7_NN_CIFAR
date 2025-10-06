@@ -32,15 +32,13 @@ class TrainingMetrics:
     """
     Class to track training metrics throughout the training process.
     
-    This class maintains lists of training and validation metrics
+    This class maintains lists of training and test metrics
     for visualization and analysis purposes.
     """
     
     def __init__(self):
         self.train_losses: List[float] = []
         self.train_accuracies: List[float] = []
-        self.val_losses: List[float] = []
-        self.val_accuracies: List[float] = []
         self.test_accuracies: List[float] = []
         self.learning_rates: List[float] = []
         
@@ -48,8 +46,6 @@ class TrainingMetrics:
         self,
         train_loss: float,
         train_acc: float,
-        val_loss: float,
-        val_acc: float,
         test_acc: Optional[float],
         lr: float
     ) -> None:
@@ -59,14 +55,11 @@ class TrainingMetrics:
         Args:
             train_loss: Training loss for the epoch
             train_acc: Training accuracy for the epoch
-            val_loss: Validation loss for the epoch
-            val_acc: Validation accuracy for the epoch
+            test_acc: Test accuracy for the epoch
             lr: Learning rate for the epoch
         """
         self.train_losses.append(train_loss)
         self.train_accuracies.append(train_acc)
-        self.val_losses.append(val_loss)
-        self.val_accuracies.append(val_acc)
         if test_acc is not None:
             self.test_accuracies.append(test_acc)
         else:
@@ -75,20 +68,17 @@ class TrainingMetrics:
     
     def get_best_metrics(self) -> Dict[str, float]:
         """
-        Get the best validation metrics achieved during training.
+        Get the best test metrics achieved during training.
         
         Returns:
-            Dictionary containing best validation metrics
+            Dictionary containing best test metrics
         """
-        if not self.val_accuracies:
+        if not self.test_accuracies:
             return {}
-        
-        best_epoch = max(range(len(self.val_accuracies)), key=lambda i: self.val_accuracies[i])
-        
+        best_epoch = max(range(len(self.test_accuracies)), key=lambda i: (self.test_accuracies[i] if not (self.test_accuracies[i] != self.test_accuracies[i]) else -1))
         return {
             "best_epoch": best_epoch + 1,
-            "best_val_accuracy": self.val_accuracies[best_epoch],
-            "best_val_loss": self.val_losses[best_epoch],
+            "best_test_accuracy": self.test_accuracies[best_epoch],
             "train_accuracy_at_best": self.train_accuracies[best_epoch],
             "train_loss_at_best": self.train_losses[best_epoch]
         }
@@ -99,7 +89,7 @@ class ModelTrainer:
     Model trainer for CIFAR-10 classification.
     
     This class handles the complete training pipeline including
-    training, validation, checkpointing, and metrics tracking.
+    training, testing, checkpointing, and metrics tracking.
     
     Args:
         model: PyTorch model to train
@@ -112,7 +102,7 @@ class ModelTrainer:
         self.config = config
         self.device = device
         self.metrics = TrainingMetrics()
-        self.best_val_accuracy = 0.0
+        self.best_test_accuracy = 0.0
         self.best_epoch = 0
         
         # Setup logging
@@ -223,37 +213,6 @@ class ModelTrainer:
         
         return avg_loss, accuracy
     
-    def validate_epoch(self, val_loader: torch.utils.data.DataLoader) -> Tuple[float, float]:
-        """
-        Validate the model for one epoch.
-        
-        Args:
-            val_loader: Validation data loader
-            
-        Returns:
-            Tuple of (average_loss, accuracy)
-        """
-        self.model.eval()
-        total_loss = 0.0
-        correct = 0
-        total_samples = 0
-        
-        with torch.no_grad():
-            for data, target in val_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                
-                output = self.model(data)
-                loss = F.nll_loss(output, target, reduction='sum')
-                
-                total_loss += loss.item()
-                pred = output.argmax(dim=1)
-                correct += pred.eq(target).sum().item()
-                total_samples += len(data)
-        
-        avg_loss = total_loss / total_samples
-        accuracy = 100.0 * correct / total_samples
-        
-        return avg_loss, accuracy
 
     def test_epoch(self, test_loader: Optional[torch.utils.data.DataLoader]) -> Optional[float]:
         """
@@ -276,7 +235,6 @@ class ModelTrainer:
     def train(
         self,
         train_loader: torch.utils.data.DataLoader,
-        val_loader: torch.utils.data.DataLoader,
         test_loader: Optional[torch.utils.data.DataLoader] = None,
         max_epochs: Optional[int] = None,
         target_test_acc: Optional[float] = None,
@@ -287,7 +245,10 @@ class ModelTrainer:
         
         Args:
             train_loader: Training data loader
-            val_loader: Validation data loader
+            test_loader: Test data loader
+            max_epochs: Maximum number of epochs
+            target_test_acc: Target test accuracy for early stopping
+            post_target_extra_epochs: Extra epochs after reaching target
             
         Returns:
             Training metrics object
@@ -315,8 +276,7 @@ class ModelTrainer:
             # Train
             train_loss, train_acc = self.train_epoch(train_loader, optimizer, scheduler, epoch)
             
-            # Validate
-            val_loss, val_acc = self.validate_epoch(val_loader)
+            # Test
             test_acc = self.test_epoch(test_loader)
             
             # Update scheduler (for non-OneCycleLR schedulers)
@@ -327,27 +287,34 @@ class ModelTrainer:
             current_lr = optimizer.param_groups[0]['lr']
             
             # Update metrics
-            self.metrics.add_epoch_metrics(train_loss, train_acc, val_loss, val_acc, test_acc, current_lr)
+            self.metrics.add_epoch_metrics(train_loss, train_acc, test_acc, current_lr)
             
             # Check for best model
-            if val_acc > self.best_val_accuracy:
-                self.best_val_accuracy = val_acc
+            if test_acc is not None and test_acc > self.best_test_accuracy:
+                self.best_test_accuracy = test_acc
                 self.best_epoch = epoch + 1
                 
                 if self.config.save_best_model:
                     torch.save(self.model.state_dict(), self.config.model_save_path)
-                    self.logger.info(f"New best model saved! Val Acc: {val_acc:.2f}%")
+                    self.logger.info(f"New best model saved! Test Acc: {test_acc:.2f}%")
             
             # Log epoch results
             epoch_time = time.time() - epoch_start_time
-            self.logger.info(
-                f"Epoch {epoch+1}/{effective_max_epochs} - "
-                f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% - "
-                f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}% - "
-                f"Test Acc: {test_acc:.2f}% - " if test_acc is not None else "" +
-                f"LR: {current_lr:.6f} - "
-                f"Time: {epoch_time:.2f}s"
-            )
+            if test_acc is not None:
+                self.logger.info(
+                    f"Epoch {epoch+1}/{effective_max_epochs} - "
+                    f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% - "
+                    f"Test Acc: {test_acc:.2f}% - "
+                    f"LR: {current_lr:.6f} - "
+                    f"Time: {epoch_time:.2f}s"
+                )
+            else:
+                self.logger.info(
+                    f"Epoch {epoch+1}/{effective_max_epochs} - "
+                    f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% - "
+                    f"LR: {current_lr:.6f} - "
+                    f"Time: {epoch_time:.2f}s"
+                )
 
             # Smart stopping based on test accuracy
             if test_acc is not None:
@@ -360,10 +327,7 @@ class ModelTrainer:
                         break
             
             # Early stopping check (optional)
-            # Keep original validation target stop as a fallback
-            if val_acc >= self.config.target_accuracy and test_acc is None:
-                self.logger.info(f"Target validation accuracy {self.config.target_accuracy}% reached!")
-                break
+            # No validation-based stop anymore
         
         total_time = time.time() - start_time
         
@@ -371,7 +335,7 @@ class ModelTrainer:
         best_metrics = self.metrics.get_best_metrics()
         self.logger.info("Training completed!")
         self.logger.info(f"Total training time: {total_time/60:.2f} minutes")
-        self.logger.info(f"Best validation accuracy: {self.best_val_accuracy:.2f}% at epoch {self.best_epoch}")
+        self.logger.info(f"Best test accuracy: {self.best_test_accuracy:.2f}% at epoch {self.best_epoch}")
         
         if best_metrics:
             self.logger.info(f"Best metrics: {best_metrics}")

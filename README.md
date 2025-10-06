@@ -329,10 +329,11 @@ class ModelConfig:
 - **Normalization**: CIFAR-10 mean/std values
 
 ### Training Configuration
-- **Epochs**: 50
+- **Max Epochs**: 100
 - **Learning Rate**: 0.1
 - **Scheduler**: OneCycleLR
-- **Target Accuracy**: 85%
+- **Target Test Accuracy**: 85%
+- **Post-Target Extra Epochs**: 3
 
 ## 🏗️ Architecture Optimization & Training Behavior
 
@@ -350,14 +351,16 @@ The model uses an optimized C1C2C3C40 architecture with the following key featur
 - **Current Parameters**: ~106K (well under 200K limit)
 
 ## 📈 Expected Performance
-- During training, console displays per-epoch accuracies:
-  - Train Acc, Val Acc, Test Acc (if test loader provided)
-- Smart stopping: runs until 100 epochs or until Test Acc ≥ 85% and then +3 extra epochs, whichever comes first
+During training, console displays per-epoch accuracies:
+- Train Acc
+- Test Acc
+
+Smart stopping: runs until 100 epochs or until Test Acc ≥ 85% and then +3 extra epochs, whichever comes first
 
 
 - **Parameters**: 105,994 (< 200k requirement ✓)
 - **Receptive Field**: 45 (> 44 requirement ✓)
-- **Target Accuracy**: 85%+ (with proper training)
+- **Target Test Accuracy**: 85%+ (with proper training)
 - **Training Time**: ~50 epochs with OneCycleLR scheduler
 
 ## 🧪 Testing

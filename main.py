@@ -218,10 +218,9 @@ def main():
     
     trainer = create_trainer(model, config.training, device)
     
-    # Train the model with test accuracy monitoring and smart stopping
+    # Train the model with test accuracy monitoring and smart stopping (no validation)
     metrics = trainer.train(
         train_loader,
-        test_loader,
         test_loader,
         max_epochs=config.training.max_epochs,
         target_test_acc=config.training.target_test_accuracy,
@@ -236,14 +235,13 @@ def main():
     print("RESULTS ANALYSIS")
     print("="*50)
     
-    # Plot training curves
+    # Plot training curves (train/test only)
     visualizer.plot_training_curves(
         metrics.train_losses,
         metrics.train_accuracies,
-        metrics.val_losses,
-        metrics.val_accuracies,
         metrics.learning_rates,
-        config.visualization.training_curves_path
+        config.visualization.training_curves_path,
+        metrics.test_accuracies
     )
     
     # Plot learning rate schedule
@@ -275,10 +273,10 @@ def main():
     print("FINAL RESULTS")
     print("="*50)
     
-    print(f"Best validation accuracy: {best_metrics['best_val_accuracy']:.2f}%")
+    print(f"Best test accuracy: {best_metrics['best_test_accuracy']:.2f}%")
     print(f"Best epoch: {best_metrics['best_epoch']}")
-    print(f"Target accuracy: {config.training.target_accuracy}%")
-    print(f"Target achieved: {'✓' if best_metrics['best_val_accuracy'] >= config.training.target_accuracy else '✗'}")
+    print(f"Target test accuracy: {config.training.target_test_accuracy}%")
+    print(f"Target achieved: {'✓' if best_metrics['best_test_accuracy'] >= config.training.target_test_accuracy else '✗'}")
     
     print(f"\nPer-class accuracies:")
     for class_name, acc in class_accuracies.items():

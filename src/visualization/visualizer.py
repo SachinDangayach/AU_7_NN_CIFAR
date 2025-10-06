@@ -39,8 +39,6 @@ class ModelVisualizer:
         self,
         train_losses: List[float],
         train_accuracies: List[float],
-        val_losses: List[float],
-        val_accuracies: List[float],
         learning_rates: Optional[List[float]] = None,
         save_path: Optional[str] = None,
         test_accuracies: Optional[List[float]] = None
@@ -51,10 +49,9 @@ class ModelVisualizer:
         Args:
             train_losses: List of training losses per epoch
             train_accuracies: List of training accuracies per epoch
-            val_losses: List of validation losses per epoch
-            val_accuracies: List of validation accuracies per epoch
             learning_rates: Optional list of learning rates per epoch
             save_path: Optional path to save the plot
+            test_accuracies: Optional list of test accuracies per epoch
         """
         fig, axes = plt.subplots(2, 2, figsize=self.config.figure_size)
         
@@ -68,34 +65,38 @@ class ModelVisualizer:
         axes[0, 0].grid(True, alpha=0.3)
         axes[0, 0].legend()
         
-        # Training / Validation / Test Accuracy
+        # Training / Test Accuracy
         axes[0, 1].plot(epochs, train_accuracies, 'g-', label='Training Accuracy', linewidth=2)
-        axes[0, 1].plot(epochs, val_accuracies, 'orange', label='Validation Accuracy', linewidth=2)
         if test_accuracies is not None and len(test_accuracies) == len(train_accuracies):
             axes[0, 1].plot(epochs, test_accuracies, 'b-', label='Test Accuracy', linewidth=2)
-        axes[0, 1].set_title('Accuracy', fontsize=14, fontweight='bold')
+        axes[0, 1].set_title('Training / Test Accuracy', fontsize=14, fontweight='bold')
         axes[0, 1].set_xlabel('Epoch')
         axes[0, 1].set_ylabel('Accuracy (%)')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].legend()
         
-        # Validation Loss
-        axes[1, 0].plot(epochs, val_losses, 'r-', label='Validation Loss', linewidth=2)
-        axes[1, 0].set_title('Validation Loss', fontsize=14, fontweight='bold')
-        axes[1, 0].set_xlabel('Epoch')
-        axes[1, 0].set_ylabel('Loss')
-        axes[1, 0].grid(True, alpha=0.3)
-        axes[1, 0].legend()
+        # Learning Rate Schedule
+        if learning_rates is not None:
+            axes[1, 0].plot(epochs, learning_rates, 'purple', label='Learning Rate', linewidth=2)
+            axes[1, 0].set_title('Learning Rate Schedule', fontsize=14, fontweight='bold')
+            axes[1, 0].set_xlabel('Epoch')
+            axes[1, 0].set_ylabel('Learning Rate')
+            axes[1, 0].grid(True, alpha=0.3)
+            axes[1, 0].legend()
+        else:
+            axes[1, 0].axis('off')
         
-        # Validation Accuracy (kept for separate focus)
-        axes[1, 1].plot(epochs, val_accuracies, 'orange', label='Validation Accuracy', linewidth=2)
-        if test_accuracies is not None and len(test_accuracies) == len(val_accuracies):
-            axes[1, 1].plot(epochs, test_accuracies, 'b--', label='Test Accuracy', linewidth=2)
-        axes[1, 1].set_title('Validation/Test Accuracy', fontsize=14, fontweight='bold')
-        axes[1, 1].set_xlabel('Epoch')
-        axes[1, 1].set_ylabel('Accuracy (%)')
-        axes[1, 1].grid(True, alpha=0.3)
-        axes[1, 1].legend()
+        
+        # Test Accuracy only (bottom-right)
+        if test_accuracies is not None and len(test_accuracies) == len(train_accuracies):
+            axes[1, 1].plot(epochs, test_accuracies, 'b-', label='Test Accuracy', linewidth=2)
+            axes[1, 1].set_title('Test Accuracy', fontsize=14, fontweight='bold')
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Accuracy (%)')
+            axes[1, 1].grid(True, alpha=0.3)
+            axes[1, 1].legend()
+        else:
+            axes[1, 1].axis('off')
         
         plt.tight_layout()
         
