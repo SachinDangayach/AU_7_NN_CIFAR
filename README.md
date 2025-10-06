@@ -84,24 +84,24 @@ Input: 32x32x3 (CIFAR-10 images)
 │   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 4 (C40): 32x32 → 16x16, RF=21 (Stride=2)
-│   ├── Conv2d(16→24, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(24→24, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(16→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Conv Block 5: 16x16 → 4x4, RF=45 (Optimized: 2 stride=2 operations)
-│   ├── Conv2d(24→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
-│   └── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(36→36, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
 ├── Global Average Pooling: 4x4 → 1x1, RF=45
 │
-└── Classifier: Linear(32 → 10) + LogSoftmax
+└── Classifier: Linear(36 → 10) + LogSoftmax
 ```
 
 ### Detailed Layer Specifications
@@ -178,7 +178,7 @@ The receptive field grows through each layer following the formula: `RF_new = RF
 | GAP | - | - | - | No change | 45 |
 
 ### Model Summary
-- **Total Parameters**: 105,994 (well under 200k limit)
+- **Total Parameters**: 136,818 (well under 200k limit)
 - **Receptive Field**: 45 (meets >44 requirement)
 - **Input Size**: 32x32x3 (CIFAR-10 standard)
 - **Output**: 10 classes (CIFAR-10 categories)
@@ -358,7 +358,7 @@ During training, console displays per-epoch accuracies:
 Smart stopping: runs until 100 epochs or until Test Acc ≥ 85% and then +3 extra epochs, whichever comes first
 
 
-- **Parameters**: 105,994 (< 200k requirement ✓)
+- **Parameters**: 136,818 (< 200k requirement ✓)
 - **Receptive Field**: 45 (> 44 requirement ✓)
 - **Target Test Accuracy**: 85%+ (with proper training)
 - **Training Time**: ~50 epochs with OneCycleLR scheduler

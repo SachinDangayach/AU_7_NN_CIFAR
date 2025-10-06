@@ -32,14 +32,14 @@ class ModelConfig:
     c3_dilation: int = 2
     
     # Conv Block 4 (C40) - Stride=2 instead of MaxPooling
-    c4_out_channels: int = 24
+    c4_out_channels: int = 32
     c4_stride: int = 2
     
     # Conv Block 5 - Additional layers for RF > 44
-    c5_out_channels: int = 32
+    c5_out_channels: int = 36
     
     # Global Average Pooling + FC
-    fc_hidden_size: int = 32
+    fc_hidden_size: int = 36
     
     # Parameter constraints
     max_parameters: int = 200000

@@ -121,13 +121,13 @@ def calculate_receptive_field_info() -> Dict[str, Any]:
             "description": "Stride=2 instead of MaxPooling",
             "output_size": "16x16",
             "receptive_field": 25,
-            "parameters": "~20K"
+            "parameters": "~30K"
         },
         "Conv Block 5": {
             "description": "Optimized: 2 stride=2 operations with minimum 2 conv gap",
             "output_size": "4x4",
             "receptive_field": 45,
-            "parameters": "~66K"
+            "parameters": "~75K"
         },
         "Global Average Pool": {
             "description": "Adaptive average pooling",
