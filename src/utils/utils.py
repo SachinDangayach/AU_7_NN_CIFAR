@@ -124,10 +124,10 @@ def calculate_receptive_field_info() -> Dict[str, Any]:
             "parameters": "~20K"
         },
         "Conv Block 5": {
-            "description": "Optimized layers for RF > 44 with stride=2",
-            "output_size": "8x8",
+            "description": "Optimized: 2 stride=2 operations with minimum 2 conv gap",
+            "output_size": "4x4",
             "receptive_field": 45,
-            "parameters": "~80K"
+            "parameters": "~66K"
         },
         "Global Average Pool": {
             "description": "Adaptive average pooling",
@@ -321,7 +321,7 @@ def print_project_info(config: ProjectConfig) -> None:
     print("✓ Conv Block 2: Depthwise Separable Convolution")
     print("✓ Conv Block 3: Dilated Convolution (dilation=2)")
     print("✓ Conv Block 4: Stride=2 instead of MaxPooling")
-    print("✓ Conv Block 5: Optimized layers for RF > 44 with stride=2")
+    print("✓ Conv Block 5: Optimized: 2 stride=2 operations with minimum 2 conv gap")
     print("✓ Global Average Pooling + FC layer")
     
     print("\nDATA AUGMENTATION:")

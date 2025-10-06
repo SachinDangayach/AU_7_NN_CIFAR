@@ -87,13 +87,19 @@ Input: 32x32x3 (CIFAR-10 images)
 │   ├── Conv2d(16→16, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
 │   └── Conv2d(16→16, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
-├── Conv Block 5: 16x16 → 8x8, RF=45 (Optimized with stride=2)
+├── Conv Block 5: 16x16 → 4x4, RF=45 (Optimized: 2 stride=2 operations)
 │   ├── Conv2d(16→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
-│   └── 8× Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3, stride=2) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   ├── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
+│   └── Conv2d(32→32, 3x3) + ReLU + BatchNorm + Dropout(0.1)
 │
-├── Global Average Pooling: 8x8 → 1x1, RF=45
+├── Global Average Pooling: 4x4 → 1x1, RF=45
 │
 └── Classifier: Linear(32 → 10) + LogSoftmax
 ```
@@ -131,16 +137,16 @@ Input: 32x32x3 (CIFAR-10 images)
 - **Feature**: Stride=2 convolution (replaces MaxPooling)
 - **Layers**: Conv2d(stride=2) + Conv2d + ReLU + BatchNorm + Dropout
 
-#### Conv Block 5 - Optimized Layers for RF > 44
+#### Conv Block 5 - Optimized: 2 stride=2 operations
 - **Input**: 16×16×16
-- **Output**: 8×8×32
+- **Output**: 4×4×32
 - **Receptive Field**: 45
 - **Parameters**: ~66K
-- **Feature**: Optimized with stride=2 after 2 convolutions
-- **Layers**: 2× Conv2d + Conv2d(stride=2) + 8× Conv2d + ReLU + BatchNorm + Dropout
+- **Feature**: 2 stride=2 operations with minimum 2 convolutions between them
+- **Layers**: 10× Conv2d(3x3) with 2 stride=2 operations
 
 #### Output Block
-- **Global Average Pooling**: 8×8×32 → 1×1×32
+- **Global Average Pooling**: 4×4×32 → 1×1×32
 - **FC Layer**: 32 → 10
 - **Log Softmax**: Final output
 
@@ -162,7 +168,13 @@ The receptive field grows through each layer following the formula: `RF_new = RF
 | Conv5.1 | 3×3 | 1 | 1 | 21 + (3-1)×1 | 23 |
 | Conv5.2 | 3×3 | 1 | 1 | 23 + (3-1)×1 | 25 |
 | Conv5.3 (Stride=2) | 3×3 | 2 | 1 | 25 + (3-1)×2 | 29 |
-| Conv5.4-11 | 3×3 | 1 | 1 | 29 + 8×(3-1)×1 | 45 |
+| Conv5.4 | 3×3 | 1 | 1 | 29 + (3-1)×1 | 31 |
+| Conv5.5 | 3×3 | 1 | 1 | 31 + (3-1)×1 | 33 |
+| Conv5.6 | 3×3 | 1 | 1 | 33 + (3-1)×1 | 35 |
+| Conv5.7 (Stride=2) | 3×3 | 2 | 1 | 35 + (3-1)×2 | 39 |
+| Conv5.8 | 3×3 | 1 | 1 | 39 + (3-1)×1 | 41 |
+| Conv5.9 | 3×3 | 1 | 1 | 41 + (3-1)×1 | 43 |
+| Conv5.10 | 3×3 | 1 | 1 | 43 + (3-1)×1 | 45 |
 | GAP | - | - | - | No change | 45 |
 
 ### Model Summary

@@ -22,24 +22,24 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block 1 (C1) - Standard convolutions
-    c1_out_channels: int = 4
+    c1_out_channels: int = 8
     
     # Conv Block 2 (C2) - Depthwise Separable Convolution
-    c2_out_channels: int = 8
+    c2_out_channels: int = 12
     
     # Conv Block 3 (C3) - Dilated Convolution
     c3_out_channels: int = 16
     c3_dilation: int = 2
     
     # Conv Block 4 (C40) - Stride=2 instead of MaxPooling
-    c4_out_channels: int = 16
+    c4_out_channels: int = 24
     c4_stride: int = 2
     
     # Conv Block 5 - Additional layers for RF > 44
-    c5_out_channels: int = 32
+    c5_out_channels: int = 36
     
     # Global Average Pooling + FC
-    fc_hidden_size: int = 32
+    fc_hidden_size: int = 36
     
     # Parameter constraints
     max_parameters: int = 200000
