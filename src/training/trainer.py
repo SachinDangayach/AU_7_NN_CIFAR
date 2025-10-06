@@ -140,7 +140,7 @@ class ModelTrainer:
             scheduler = OneCycleLR(
                 optimizer,
                 max_lr=self.config.max_lr,
-                epochs=getattr(self.config, 'max_epochs', self.config.epochs),
+                epochs=getattr(self.config, 'scheduler_epochs', 75),
                 steps_per_epoch=len(train_loader)
             )
         elif self.config.scheduler_type == "CosineAnnealingLR":
@@ -203,8 +203,7 @@ class ModelTrainer:
             # Update progress bar
             current_acc = 100.0 * correct / total_samples
             pbar.set_postfix({
-                'Loss': f'{loss.item():.4f}',
-                'Acc': f'{current_acc:.2f}%',
+                'Train': f'{current_acc:.2f}%',
                 'LR': f'{optimizer.param_groups[0]["lr"]:.6f}'
             })
         
@@ -308,6 +307,19 @@ class ModelTrainer:
                     f"LR: {current_lr:.6f} - "
                     f"Time: {epoch_time:.2f}s"
                 )
+                # Emit a tqdm-like completed bar line
+                try:
+                    total_batches = len(train_loader)
+                    mins = int(epoch_time // 60)
+                    secs = int(epoch_time % 60)
+                    it_per_s = total_batches / epoch_time if epoch_time > 0 else 0.0
+                    from tqdm import tqdm
+                    tqdm.write(
+                        f"Epoch {epoch+1}/{effective_max_epochs}: 100%|{'█'*10}{' '*(10-10)}| {total_batches}/{total_batches} "
+                        f"[{mins:02d}:{secs:02d}<00:00,  {it_per_s:5.2f}it/s, Train={train_acc:.2f}%,  Test={test_acc:.2f}%, LR={current_lr:.6f}]"
+                    )
+                except Exception:
+                    pass
             else:
                 self.logger.info(
                     f"Epoch {epoch+1}/{effective_max_epochs} - "
