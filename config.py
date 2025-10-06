@@ -86,7 +86,8 @@ class TrainingConfig:
     """Training configuration parameters"""
     
     # Training settings
-    epochs: int = 50
+    epochs: int = 50  # kept for backward compat / some schedulers
+    max_epochs: int = 100  # hard ceiling for training duration
     learning_rate: float = 0.1
     momentum: float = 0.9
     weight_decay: float = 1e-4
@@ -106,7 +107,9 @@ class TrainingConfig:
     model_save_path: str = "best_model.pth"
     
     # Performance targets
-    target_accuracy: float = 85.0
+    target_accuracy: float = 85.0  # retained (validation target)
+    target_test_accuracy: float = 85.0  # stopping based on test accuracy
+    post_target_extra_epochs: int = 3  # train N extra epochs after target reached
     
     # Logging
     log_level: str = "INFO"

@@ -215,7 +215,7 @@ python test_model.py --verbose
 ### 3. Train the Model
 
 ```bash
-# Train with default settings
+# Train with default settings (up to 100 epochs or test≥85% + 3 epochs)
 python main.py
 
 # Train with custom parameters
@@ -334,7 +334,7 @@ class ModelConfig:
 - **Scheduler**: OneCycleLR
 - **Target Accuracy**: 85%
 
-## 🏗️ Architecture Optimization
+## 🏗️ Architecture Optimization & Training Behavior
 
 The model uses an optimized C1C2C3C40 architecture with the following key features:
 
@@ -350,6 +350,10 @@ The model uses an optimized C1C2C3C40 architecture with the following key featur
 - **Current Parameters**: ~106K (well under 200K limit)
 
 ## 📈 Expected Performance
+- During training, console displays per-epoch accuracies:
+  - Train Acc, Val Acc, Test Acc (if test loader provided)
+- Smart stopping: runs until 100 epochs or until Test Acc ≥ 85% and then +3 extra epochs, whichever comes first
+
 
 - **Parameters**: 105,994 (< 200k requirement ✓)
 - **Receptive Field**: 45 (> 44 requirement ✓)

@@ -218,8 +218,15 @@ def main():
     
     trainer = create_trainer(model, config.training, device)
     
-    # Train the model
-    metrics = trainer.train(train_loader, test_loader)
+    # Train the model with test accuracy monitoring and smart stopping
+    metrics = trainer.train(
+        train_loader,
+        test_loader,
+        test_loader,
+        max_epochs=config.training.max_epochs,
+        target_test_acc=config.training.target_test_accuracy,
+        post_target_extra_epochs=config.training.post_target_extra_epochs
+    )
     
     # Load best model for analysis
     trainer.load_best_model()

@@ -42,7 +42,8 @@ class ModelVisualizer:
         val_losses: List[float],
         val_accuracies: List[float],
         learning_rates: Optional[List[float]] = None,
-        save_path: Optional[str] = None
+        save_path: Optional[str] = None,
+        test_accuracies: Optional[List[float]] = None
     ) -> None:
         """
         Plot comprehensive training curves.
@@ -67,9 +68,12 @@ class ModelVisualizer:
         axes[0, 0].grid(True, alpha=0.3)
         axes[0, 0].legend()
         
-        # Training Accuracy
+        # Training / Validation / Test Accuracy
         axes[0, 1].plot(epochs, train_accuracies, 'g-', label='Training Accuracy', linewidth=2)
-        axes[0, 1].set_title('Training Accuracy', fontsize=14, fontweight='bold')
+        axes[0, 1].plot(epochs, val_accuracies, 'orange', label='Validation Accuracy', linewidth=2)
+        if test_accuracies is not None and len(test_accuracies) == len(train_accuracies):
+            axes[0, 1].plot(epochs, test_accuracies, 'b-', label='Test Accuracy', linewidth=2)
+        axes[0, 1].set_title('Accuracy', fontsize=14, fontweight='bold')
         axes[0, 1].set_xlabel('Epoch')
         axes[0, 1].set_ylabel('Accuracy (%)')
         axes[0, 1].grid(True, alpha=0.3)
@@ -83,9 +87,11 @@ class ModelVisualizer:
         axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].legend()
         
-        # Validation Accuracy
+        # Validation Accuracy (kept for separate focus)
         axes[1, 1].plot(epochs, val_accuracies, 'orange', label='Validation Accuracy', linewidth=2)
-        axes[1, 1].set_title('Validation Accuracy', fontsize=14, fontweight='bold')
+        if test_accuracies is not None and len(test_accuracies) == len(val_accuracies):
+            axes[1, 1].plot(epochs, test_accuracies, 'b--', label='Test Accuracy', linewidth=2)
+        axes[1, 1].set_title('Validation/Test Accuracy', fontsize=14, fontweight='bold')
         axes[1, 1].set_xlabel('Epoch')
         axes[1, 1].set_ylabel('Accuracy (%)')
         axes[1, 1].grid(True, alpha=0.3)

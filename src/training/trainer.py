@@ -41,6 +41,7 @@ class TrainingMetrics:
         self.train_accuracies: List[float] = []
         self.val_losses: List[float] = []
         self.val_accuracies: List[float] = []
+        self.test_accuracies: List[float] = []
         self.learning_rates: List[float] = []
         
     def add_epoch_metrics(
@@ -49,6 +50,7 @@ class TrainingMetrics:
         train_acc: float,
         val_loss: float,
         val_acc: float,
+        test_acc: Optional[float],
         lr: float
     ) -> None:
         """
@@ -65,6 +67,10 @@ class TrainingMetrics:
         self.train_accuracies.append(train_acc)
         self.val_losses.append(val_loss)
         self.val_accuracies.append(val_acc)
+        if test_acc is not None:
+            self.test_accuracies.append(test_acc)
+        else:
+            self.test_accuracies.append(float('nan'))
         self.learning_rates.append(lr)
     
     def get_best_metrics(self) -> Dict[str, float]:
@@ -144,7 +150,7 @@ class ModelTrainer:
             scheduler = OneCycleLR(
                 optimizer,
                 max_lr=self.config.max_lr,
-                epochs=self.config.epochs,
+                epochs=getattr(self.config, 'max_epochs', self.config.epochs),
                 steps_per_epoch=len(train_loader)
             )
         elif self.config.scheduler_type == "CosineAnnealingLR":
@@ -248,11 +254,33 @@ class ModelTrainer:
         accuracy = 100.0 * correct / total_samples
         
         return avg_loss, accuracy
+
+    def test_epoch(self, test_loader: Optional[torch.utils.data.DataLoader]) -> Optional[float]:
+        """
+        Evaluate the model on the test set for one epoch and return accuracy.
+        """
+        if test_loader is None:
+            return None
+        self.model.eval()
+        correct = 0
+        total_samples = 0
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(self.device), target.to(self.device)
+                output = self.model(data)
+                pred = output.argmax(dim=1)
+                correct += pred.eq(target).sum().item()
+                total_samples += len(data)
+        return 100.0 * correct / total_samples if total_samples > 0 else 0.0
     
     def train(
         self,
         train_loader: torch.utils.data.DataLoader,
-        val_loader: torch.utils.data.DataLoader
+        val_loader: torch.utils.data.DataLoader,
+        test_loader: Optional[torch.utils.data.DataLoader] = None,
+        max_epochs: Optional[int] = None,
+        target_test_acc: Optional[float] = None,
+        post_target_extra_epochs: Optional[int] = None
     ) -> TrainingMetrics:
         """
         Complete training pipeline.
@@ -266,7 +294,8 @@ class ModelTrainer:
         """
         self.logger.info("Starting training...")
         self.logger.info(f"Device: {self.device}")
-        self.logger.info(f"Epochs: {self.config.epochs}")
+        effective_max_epochs = max_epochs or getattr(self.config, 'max_epochs', self.config.epochs)
+        self.logger.info(f"Epochs: {effective_max_epochs}")
         self.logger.info(f"Learning Rate: {self.config.learning_rate}")
         self.logger.info(f"Scheduler: {self.config.scheduler_type}")
         
@@ -276,7 +305,11 @@ class ModelTrainer:
         # Training loop
         start_time = time.time()
         
-        for epoch in range(self.config.epochs):
+        target_test_acc = target_test_acc if target_test_acc is not None else getattr(self.config, 'target_test_accuracy', 85.0)
+        post_target_extra_epochs = post_target_extra_epochs if post_target_extra_epochs is not None else getattr(self.config, 'post_target_extra_epochs', 3)
+        target_reached_epoch: Optional[int] = None
+
+        for epoch in range(effective_max_epochs):
             epoch_start_time = time.time()
             
             # Train
@@ -284,6 +317,7 @@ class ModelTrainer:
             
             # Validate
             val_loss, val_acc = self.validate_epoch(val_loader)
+            test_acc = self.test_epoch(test_loader)
             
             # Update scheduler (for non-OneCycleLR schedulers)
             if scheduler and not isinstance(scheduler, OneCycleLR):
@@ -293,7 +327,7 @@ class ModelTrainer:
             current_lr = optimizer.param_groups[0]['lr']
             
             # Update metrics
-            self.metrics.add_epoch_metrics(train_loss, train_acc, val_loss, val_acc, current_lr)
+            self.metrics.add_epoch_metrics(train_loss, train_acc, val_loss, val_acc, test_acc, current_lr)
             
             # Check for best model
             if val_acc > self.best_val_accuracy:
@@ -307,16 +341,28 @@ class ModelTrainer:
             # Log epoch results
             epoch_time = time.time() - epoch_start_time
             self.logger.info(
-                f"Epoch {epoch+1}/{self.config.epochs} - "
+                f"Epoch {epoch+1}/{effective_max_epochs} - "
                 f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% - "
                 f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}% - "
+                f"Test Acc: {test_acc:.2f}% - " if test_acc is not None else "" +
                 f"LR: {current_lr:.6f} - "
                 f"Time: {epoch_time:.2f}s"
             )
+
+            # Smart stopping based on test accuracy
+            if test_acc is not None:
+                if test_acc >= target_test_acc and target_reached_epoch is None:
+                    target_reached_epoch = epoch
+                    self.logger.info(f"🎯 Target test accuracy {target_test_acc:.2f}% reached at epoch {epoch+1}.")
+                if target_reached_epoch is not None:
+                    if epoch - target_reached_epoch + 1 >= post_target_extra_epochs:
+                        self.logger.info(f"✅ Stopping after {post_target_extra_epochs} extra epochs post target.")
+                        break
             
             # Early stopping check (optional)
-            if val_acc >= self.config.target_accuracy:
-                self.logger.info(f"Target accuracy {self.config.target_accuracy}% reached!")
+            # Keep original validation target stop as a fallback
+            if val_acc >= self.config.target_accuracy and test_acc is None:
+                self.logger.info(f"Target validation accuracy {self.config.target_accuracy}% reached!")
                 break
         
         total_time = time.time() - start_time
