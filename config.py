@@ -95,7 +95,8 @@ class TrainingConfig:
             # Scheduler settings
             scheduler_type: str = "OneCycleLR"
             max_lr: float = 0.1
-            scheduler_epochs: int = 75
+            scheduler_epochs: int = 100
+            step_lr_step_size: int = 20
     
     # Device settings
     device: str = "auto"  # "auto", "cuda", "cpu"

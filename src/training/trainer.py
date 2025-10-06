@@ -140,13 +140,17 @@ class ModelTrainer:
             scheduler = OneCycleLR(
                 optimizer,
                 max_lr=self.config.max_lr,
-                epochs=getattr(self.config, 'scheduler_epochs', 75),
+                epochs=getattr(self.config, 'scheduler_epochs', 100),
                 steps_per_epoch=len(train_loader)
             )
         elif self.config.scheduler_type == "CosineAnnealingLR":
             scheduler = CosineAnnealingLR(optimizer, T_max=self.config.epochs)
         elif self.config.scheduler_type == "StepLR":
-            scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+            scheduler = StepLR(
+                optimizer,
+                step_size=getattr(self.config, 'step_lr_step_size', 20),
+                gamma=0.1
+            )
         
         return optimizer, scheduler
     
