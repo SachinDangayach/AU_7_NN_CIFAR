@@ -270,7 +270,7 @@ from config import ModelConfig, DataConfig, TrainingConfig, ProjectConfig
 
 # Create custom configuration
 model_config = ModelConfig(
-    dropout_rate=0.15,
+    dropout_rate=0.05,
     c2_out_channels=96,
     c3_dilation=3
 )
@@ -304,7 +304,7 @@ class ModelConfig:
     # Model architecture
     input_channels: int = 3
     num_classes: int = 10
-    dropout_rate: float = 0.1
+    dropout_rate: float = 0.05
     
     # Conv Block channels (optimized for < 200K parameters)
     c1_out_channels: int = 8       # Conv Block 1

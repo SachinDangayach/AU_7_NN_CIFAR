@@ -367,7 +367,7 @@ class CIFAR10Net(nn.Module):
         # Conv: 3x3 kernel, RF = 17 + (3-1)*1 = 19
         x = self.c3(x)  # Output: 32x32, RF = 19
         
-        # C4: High Dilation Block (48→48 channels)
+        # C4: High Dilation Block (48→56 channels)
         # Dilated Conv: 3x3 kernel, dilation=4, effective kernel=9, RF = 19 + (9-1)*1 = 27
         # Conv: 3x3 kernel, RF = 27 + (3-1)*1 = 29
         # Dilated Conv: 3x3 kernel, dilation=8, effective kernel=17, RF = 29 + (17-1)*1 = 45
@@ -396,8 +396,8 @@ class CIFAR10Net(nn.Module):
             "C1: Initial Feature Block": {"output_size": "32x32", "receptive_field": 5, "channels": "3→16"},
             "C2: Depthwise Separable": {"output_size": "32x32", "receptive_field": 11, "channels": "16→32"},
             "C3: Dilated Convolutions": {"output_size": "32x32", "receptive_field": 19, "channels": "32→48"},
-            "C4: High Dilation Block": {"output_size": "32x32", "receptive_field": 45, "channels": "48→48"},
-            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45, "channels": "48→48"},
+            "C4: High Dilation Block": {"output_size": "32x32", "receptive_field": 45, "channels": "48→56"},
+            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45, "channels": "56→56"},
             "Total RF": 45
         }
 
