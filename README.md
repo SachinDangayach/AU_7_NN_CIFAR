@@ -103,21 +103,21 @@ Input Image (32×32×3)
 │
 ┌───▼────────────────────────┐
 │ C2: Depthwise Separable     │ ◄── 16→32 channels
-│ • DW Conv3×3 (groups=16)   │ RF: 5→9
+│ • DW Conv3×3 (groups=16)   │ RF: 5→11
 │ • PW Conv1×1 + BN + ReLU   │ Params: 10,368
 │ • Conv3×3 + BN + ReLU      │
 └───┬────────────────────────┘
 │
 ┌───▼────────────────────────┐
 │ C3: Dilated Convolutions    │ ◄── 32→48 channels
-│ • Conv3×3 + BN + ReLU       │ RF: 9→17
+│ • Conv3×3 + BN + ReLU       │ RF: 11→19
 │ • Dilated Conv (d=2)        │ Params: 61,680
 │ • Conv3×3 + BN + ReLU       │
 └───┬────────────────────────┘
 │
 ┌───▼────────────────────────┐
 │ C4: High Dilation Block     │ ◄── 48→56 channels
-│ • Dilated Conv (d=4)        │ RF: 17→45
+│ • Dilated Conv (d=4)        │ RF: 19→45
 │ • Conv3×3 + BN + ReLU       │ Params: 99,568
 │ • Dilated Conv (d=8)        │
 │ • Conv1×1 + BN + ReLU       │
@@ -147,25 +147,25 @@ Input Image (32×32×3)
 #### Conv Block 2 (C2) - Depthwise Separable Convolution
 - **Input**: 32×32×16
 - **Output**: 32×32×32
-- **Receptive Field**: 5→9
+- **Receptive Field**: 5→11
 - **Parameters**: 10,368
 - **Feature**: Depthwise Separable Convolution (parameter-efficient)
-- **Layers**: DepthwiseSeparableConv + Conv2d + ReLU + BatchNorm + Dropout(0.05)
+- **Layers**: DepthwiseSeparableConv + Conv2d + Conv2d + ReLU + BatchNorm + Dropout(0.05)
 - **Purpose**: Efficient feature expansion with reduced parameters
 
 #### Conv Block 3 (C3) - Dilated Convolution
 - **Input**: 32×32×32
 - **Output**: 32×32×48
-- **Receptive Field**: 9→17
+- **Receptive Field**: 11→19
 - **Parameters**: 61,680
 - **Feature**: Dilated Convolution (dilation=2)
-- **Layers**: Conv2d(dilation=2) + Conv2d + ReLU + BatchNorm + Dropout(0.05)
+- **Layers**: Conv2d + Conv2d(dilation=2) + Conv2d + ReLU + BatchNorm + Dropout(0.05)
 - **Purpose**: Increased receptive field without downsampling
 
 #### Conv Block 4 (C4) - High Dilation Block
 - **Input**: 32×32×48
 - **Output**: 32×32×56
-- **Receptive Field**: 17→45
+- **Receptive Field**: 19→45
 - **Parameters**: 99,568
 - **Feature**: Multiple dilations (d=4, d=8) + 1×1 convolution
 - **Layers**: DilatedConv(d=4) + Conv2d + DilatedConv(d=8) + Conv1x1 + ReLU + BatchNorm + Dropout(0.05)
@@ -187,18 +187,19 @@ The receptive field grows through each layer following the formula: `RF_new = RF
 | C2.1 (Depthwise) | 3×3 | 1 | 1 | 5 + (3-1)×1×1 | 7 |
 | C2.1 (Pointwise) | 1×1 | 1 | 1 | 7 + (1-1)×1×1 | 7 |
 | C2.2 | 3×3 | 1 | 1 | 7 + (3-1)×1×1 | 9 |
-| C3.1 | 3×3 | 1 | 1 | 9 + (3-1)×1×1 | 11 |
-| C3.2 (Dilated) | 3×3 | 1 | 2 | 11 + (3-1)×1×2 | 15 |
-| C3.3 | 3×3 | 1 | 1 | 15 + (3-1)×1×1 | 17 |
-| C4.1 (Dilated) | 3×3 | 1 | 4 | 17 + (3-1)×1×4 | 25 |
-| C4.2 | 3×3 | 1 | 1 | 25 + (3-1)×1×1 | 27 |
-| C4.3 (Dilated) | 3×3 | 1 | 8 | 27 + (3-1)×1×8 | 43 |
-| C4.4 | 1×1 | 1 | 1 | 43 + (1-1)×1×1 | 43 |
-| GAP | - | - | - | No change | 43 |
+| C2.3 | 3×3 | 1 | 1 | 9 + (3-1)×1×1 | 11 |
+| C3.1 | 3×3 | 1 | 1 | 11 + (3-1)×1×1 | 13 |
+| C3.2 (Dilated) | 3×3 | 1 | 2 | 13 + (3-1)×1×2 | 17 |
+| C3.3 | 3×3 | 1 | 1 | 17 + (3-1)×1×1 | 19 |
+| C4.1 (Dilated) | 3×3 | 1 | 4 | 19 + (3-1)×1×4 | 27 |
+| C4.2 | 3×3 | 1 | 1 | 27 + (3-1)×1×1 | 29 |
+| C4.3 (Dilated) | 3×3 | 1 | 8 | 29 + (3-1)×1×8 | 45 |
+| C4.4 | 1×1 | 1 | 1 | 45 + (1-1)×1×1 | 45 |
+| GAP | - | - | - | No change | 45 |
 
 ### Model Summary
 - **Total Parameters**: 162,458 (well under 200k limit)
-- **Receptive Field**: 43 (meets >44 requirement with final RF=45)
+- **Receptive Field**: 45 (exceeds >44 requirement ✓)
 - **Input Size**: 32x32x3 (CIFAR-10 standard)
 - **Output**: 10 classes (CIFAR-10 categories)
 - **Architecture Compliance**: ✅ C1C2C3C4 structure
