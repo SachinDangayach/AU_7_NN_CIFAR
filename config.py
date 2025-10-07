@@ -27,12 +27,12 @@ class ModelConfig:
     # C2: Depthwise Separable (16→32 channels)
     c2_out_channels: int = 32
     
-    # C3: Dilated Convolutions (32→48 channels)
-    c3_out_channels: int = 48
+    # C3: Dilated Convolutions (32→40 channels)
+    c3_out_channels: int = 40
     c3_dilation: int = 2
     
-    # C4: High Dilation Block (48→64 channels)
-    c4_out_channels: int = 64
+    # C4: High Dilation Block (40→48 channels)
+    c4_out_channels: int = 48
     c4_dilation_1: int = 4
     c4_dilation_2: int = 8
     

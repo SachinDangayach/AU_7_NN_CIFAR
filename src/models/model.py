@@ -246,98 +246,96 @@ class CIFAR10Net(nn.Module):
         
         self.config = config
         
-        # C1: Initial Feature Block (3→16 channels)
+        # C1: Initial Feature Block (3→20 channels)
         self.c1 = nn.Sequential(
             ConvBlock(
                 in_channels=config.input_channels,
-                out_channels=16,
+                out_channels=config.c1_out_channels,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=16,
-                out_channels=16,
+                in_channels=config.c1_out_channels,
+                out_channels=config.c1_out_channels,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # C2: Depthwise Separable (16→32 channels)
+        # C2: Depthwise Separable (20→40 channels) - Added extra conv to reach RF=11
         self.c2 = nn.Sequential(
             ConvBlock(
-                in_channels=16,
-                out_channels=32,
+                in_channels=config.c1_out_channels,
+                out_channels=config.c2_out_channels,
                 dropout_rate=config.dropout_rate,
                 use_depthwise_separable=True
             ),
             ConvBlock(
-                in_channels=32,
-                out_channels=32,
+                in_channels=config.c2_out_channels,
+                out_channels=config.c2_out_channels,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=config.c2_out_channels,
+                out_channels=config.c2_out_channels,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # C3: Dilated Convolutions (32→48 channels)
+        # C3: Dilated Convolutions (40→60 channels)
         self.c3 = nn.Sequential(
             ConvBlock(
-                in_channels=32,
-                out_channels=40,
+                in_channels=config.c2_out_channels,
+                out_channels=config.c3_out_channels,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=40,
-                out_channels=40,
-                dilation=2,
-                padding=2,
+                in_channels=config.c3_out_channels,
+                out_channels=config.c3_out_channels,
+                dilation=config.c3_dilation,
+                padding=config.c3_dilation,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=40,
-                out_channels=40,
+                in_channels=config.c3_out_channels,
+                out_channels=config.c3_out_channels,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # C4: High Dilation Block (40→48 channels)
+        # C4: High Dilation Block (60→80 channels)
         self.c4 = nn.Sequential(
             ConvBlock(
-                in_channels=40,
-                out_channels=48,
-                dilation=4,
-                padding=4,
+                in_channels=config.c3_out_channels,
+                out_channels=config.c4_out_channels,
+                dilation=config.c4_dilation_1,
+                padding=config.c4_dilation_1,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=48,
-                out_channels=48,
+                in_channels=config.c4_out_channels,
+                out_channels=config.c4_out_channels,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=48,
-                out_channels=48,
-                dilation=8,
-                padding=8,
+                in_channels=config.c4_out_channels,
+                out_channels=config.c4_out_channels,
+                dilation=config.c4_dilation_2,
+                padding=config.c4_dilation_2,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=48,
-                out_channels=48,
+                in_channels=config.c4_out_channels,
+                out_channels=config.c4_out_channels,
                 kernel_size=1,
                 padding=0,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # Additional layer to reach RF > 44
-        self.final_conv = ConvBlock(
-            in_channels=48,
-            out_channels=48,
-            dropout_rate=config.dropout_rate
-        )
-        
-        # Global Average Pooling
+        # Global Average Pooling (removed final conv and dropout)
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
         
         # Fully Connected layer after GAP
-        self.classifier = nn.Linear(48, config.num_classes)
+        self.classifier = nn.Linear(config.c4_out_channels, config.num_classes)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -356,28 +354,25 @@ class CIFAR10Net(nn.Module):
         # Conv2: 3x3 kernel, RF = 3 + (3-1)*1 = 5
         x = self.c1(x)  # Output: 32x32, RF = 5
         
-        # C2: Depthwise Separable (16→32 channels)
+        # C2: Depthwise Separable (16→32 channels) - Added extra conv to reach RF=11
         # DW Conv: 3x3 kernel, RF = 5 + (3-1)*1 = 7
         # PW Conv: 1x1 kernel, RF = 7 + (1-1)*1 = 7
-        # Conv: 3x3 kernel, RF = 7 + (3-1)*1 = 9
-        x = self.c2(x)  # Output: 32x32, RF = 9
+        # Conv2: 3x3 kernel, RF = 7 + (3-1)*1 = 9
+        # Conv3: 3x3 kernel, RF = 9 + (3-1)*1 = 11
+        x = self.c2(x)  # Output: 32x32, RF = 11
         
-        # C3: Dilated Convolutions (32→48 channels)
-        # Conv: 3x3 kernel, RF = 9 + (3-1)*1 = 11
-        # Dilated Conv: 3x3 kernel, dilation=2, effective kernel=5, RF = 11 + (5-1)*1 = 15
-        # Conv: 3x3 kernel, RF = 15 + (3-1)*1 = 17
-        x = self.c3(x)  # Output: 32x32, RF = 17
+        # C3: Dilated Convolutions (32→40 channels)
+        # Conv: 3x3 kernel, RF = 11 + (3-1)*1 = 13
+        # Dilated Conv: 3x3 kernel, dilation=2, effective kernel=5, RF = 13 + (5-1)*1 = 17
+        # Conv: 3x3 kernel, RF = 17 + (3-1)*1 = 19
+        x = self.c3(x)  # Output: 32x32, RF = 19
         
-        # C4: High Dilation Block (48→64 channels)
-        # Dilated Conv: 3x3 kernel, dilation=4, effective kernel=9, RF = 17 + (9-1)*1 = 25
-        # Conv: 3x3 kernel, RF = 25 + (3-1)*1 = 27
-        # Dilated Conv: 3x3 kernel, dilation=8, effective kernel=17, RF = 27 + (17-1)*1 = 43
-        # Conv: 1x1 kernel, RF = 43 + (1-1)*1 = 43
-        x = self.c4(x)  # Output: 32x32, RF = 43
-        
-        # Additional layer to reach RF > 44
-        # Conv: 3x3 kernel, RF = 43 + (3-1)*1 = 45
-        x = self.final_conv(x)  # Output: 32x32, RF = 45
+        # C4: High Dilation Block (40→48 channels)
+        # Dilated Conv: 3x3 kernel, dilation=4, effective kernel=9, RF = 19 + (9-1)*1 = 27
+        # Conv: 3x3 kernel, RF = 27 + (3-1)*1 = 29
+        # Dilated Conv: 3x3 kernel, dilation=8, effective kernel=17, RF = 29 + (17-1)*1 = 45
+        # Conv: 1x1 kernel, RF = 45 + (1-1)*1 = 45
+        x = self.c4(x)  # Output: 32x32, RF = 45
         
         # Global Average Pooling: 32x32 -> 1x1
         # GAP: RF remains the same as input, RF = 45
@@ -399,10 +394,9 @@ class CIFAR10Net(nn.Module):
         """
         return {
             "C1: Initial Feature Block": {"output_size": "32x32", "receptive_field": 5, "channels": "3→16"},
-            "C2: Depthwise Separable": {"output_size": "32x32", "receptive_field": 9, "channels": "16→32"},
-            "C3: Dilated Convolutions": {"output_size": "32x32", "receptive_field": 17, "channels": "32→40"},
-            "C4: High Dilation Block": {"output_size": "32x32", "receptive_field": 43, "channels": "40→48"},
-            "Final Conv": {"output_size": "32x32", "receptive_field": 45, "channels": "48→48"},
+            "C2: Depthwise Separable": {"output_size": "32x32", "receptive_field": 11, "channels": "16→32"},
+            "C3: Dilated Convolutions": {"output_size": "32x32", "receptive_field": 19, "channels": "32→40"},
+            "C4: High Dilation Block": {"output_size": "32x32", "receptive_field": 45, "channels": "40→48"},
             "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45, "channels": "48→48"},
             "Total RF": 45
         }
