@@ -39,10 +39,11 @@ class TrainingMetrics:
     def __init__(self):
         self.train_losses: List[float] = []
         self.train_accuracies: List[float] = []
+        self.test_losses: List[float] = []
         self.test_accuracies: List[float] = []
         self.learning_rates: List[float] = []
         # Backward-compatibility aliases expected by some notebooks
-        self.val_losses: List[float] = []  # we don't compute val loss; keep empty or mirror train loss if needed
+        self.val_losses: List[float] = []  # we don't compute separate val loss before; now mirrors test loss when available
         self.val_accuracies: List[float] = self.test_accuracies  # alias: validation == test in this project
         
     def add_epoch_metrics(
@@ -50,7 +51,8 @@ class TrainingMetrics:
         train_loss: float,
         train_acc: float,
         test_acc: Optional[float],
-        lr: float
+        lr: float,
+        test_loss: Optional[float] = None
     ) -> None:
         """
         Add metrics for a single epoch.
@@ -60,15 +62,22 @@ class TrainingMetrics:
             train_acc: Training accuracy for the epoch
             test_acc: Test accuracy for the epoch
             lr: Learning rate for the epoch
+            test_loss: Optional test loss for the epoch
         """
         self.train_losses.append(train_loss)
         self.train_accuracies.append(train_acc)
+        # accuracy
         if test_acc is not None:
             self.test_accuracies.append(test_acc)
         else:
             self.test_accuracies.append(float('nan'))
-        # keep val_losses aligned length-wise to avoid indexing errors in plots
-        self.val_losses.append(float('nan'))
+        # loss
+        if test_loss is not None:
+            self.test_losses.append(test_loss)
+            self.val_losses.append(test_loss)
+        else:
+            self.test_losses.append(float('nan'))
+            self.val_losses.append(float('nan'))
         self.learning_rates.append(lr)
     
     def get_best_metrics(self) -> Dict[str, float]:
@@ -224,23 +233,28 @@ class ModelTrainer:
         return avg_loss, accuracy
     
 
-    def test_epoch(self, test_loader: Optional[torch.utils.data.DataLoader]) -> Optional[float]:
+    def test_epoch(self, test_loader: Optional[torch.utils.data.DataLoader]) -> Optional[Tuple[float, float]]:
         """
-        Evaluate the model on the test set for one epoch and return accuracy.
+        Evaluate the model on the test set for one epoch and return (loss, accuracy).
         """
         if test_loader is None:
             return None
         self.model.eval()
         correct = 0
         total_samples = 0
+        total_loss = 0.0
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
+                loss = F.nll_loss(output, target)
+                total_loss += loss.item()
                 pred = output.argmax(dim=1)
                 correct += pred.eq(target).sum().item()
                 total_samples += len(data)
-        return 100.0 * correct / total_samples if total_samples > 0 else 0.0
+        avg_loss = total_loss / len(test_loader) if len(test_loader) > 0 else float('nan')
+        acc = 100.0 * correct / total_samples if total_samples > 0 else 0.0
+        return (avg_loss, acc)
     
     def train(
         self,
@@ -287,7 +301,11 @@ class ModelTrainer:
             train_loss, train_acc = self.train_epoch(train_loader, optimizer, scheduler, epoch)
             
             # Test
-            test_acc = self.test_epoch(test_loader)
+            test_out = self.test_epoch(test_loader)
+            if test_out is None:
+                test_loss, test_acc = None, None
+            else:
+                test_loss, test_acc = test_out
             
             # Update scheduler (for non-OneCycleLR schedulers)
             if scheduler and not isinstance(scheduler, OneCycleLR):
@@ -296,8 +314,8 @@ class ModelTrainer:
             # Get current learning rate
             current_lr = optimizer.param_groups[0]['lr']
             
-            # Update metrics
-            self.metrics.add_epoch_metrics(train_loss, train_acc, test_acc, current_lr)
+            # Update metrics (includes test loss if available)
+            self.metrics.add_epoch_metrics(train_loss, train_acc, test_acc, current_lr, test_loss)
             
             # Check for best model
             if test_acc is not None and test_acc > self.best_test_accuracy:
@@ -315,7 +333,7 @@ class ModelTrainer:
                 self.logger.info(
                     f"Epoch {epoch+1}/{effective_max_epochs} - "
                     f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% - "
-                    f"Test Acc: {test_acc:.2f}% - "
+                    f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}% - "
                     f"LR: {current_lr:.6f} - "
                     f"Time: {epoch_time:.2f}s"
                 )

@@ -41,7 +41,8 @@ class ModelVisualizer:
         train_accuracies: List[float],
         learning_rates: Optional[List[float]] = None,
         save_path: Optional[str] = None,
-        test_accuracies: Optional[List[float]] = None
+        test_accuracies: Optional[List[float]] = None,
+        test_losses: Optional[List[float]] = None
     ) -> None:
         """
         Plot comprehensive training curves.
@@ -52,24 +53,27 @@ class ModelVisualizer:
             learning_rates: Optional list of learning rates per epoch
             save_path: Optional path to save the plot
             test_accuracies: Optional list of test accuracies per epoch
+            test_losses: Optional list of test losses per epoch
         """
         fig, axes = plt.subplots(2, 2, figsize=self.config.figure_size)
         
         epochs = range(1, len(train_losses) + 1)
         
-        # Training Loss
-        axes[0, 0].plot(epochs, train_losses, 'b-', label='Training Loss', linewidth=2)
-        axes[0, 0].set_title('Training Loss', fontsize=14, fontweight='bold')
+        # Training vs Test Loss
+        axes[0, 0].plot(epochs, train_losses, 'b-', label='Train Loss', linewidth=2)
+        if test_losses is not None and len(test_losses) == len(train_losses):
+            axes[0, 0].plot(epochs, test_losses, 'r-', label='Test Loss', linewidth=2)
+        axes[0, 0].set_title('Loss', fontsize=14, fontweight='bold')
         axes[0, 0].set_xlabel('Epoch')
         axes[0, 0].set_ylabel('Loss')
         axes[0, 0].grid(True, alpha=0.3)
         axes[0, 0].legend()
         
         # Training / Test Accuracy
-        axes[0, 1].plot(epochs, train_accuracies, 'g-', label='Training Accuracy', linewidth=2)
+        axes[0, 1].plot(epochs, train_accuracies, 'g-', label='Train Acc', linewidth=2)
         if test_accuracies is not None and len(test_accuracies) == len(train_accuracies):
-            axes[0, 1].plot(epochs, test_accuracies, 'b-', label='Test Accuracy', linewidth=2)
-        axes[0, 1].set_title('Training / Test Accuracy', fontsize=14, fontweight='bold')
+            axes[0, 1].plot(epochs, test_accuracies, 'b-', label='Test Acc', linewidth=2)
+        axes[0, 1].set_title('Accuracy', fontsize=14, fontweight='bold')
         axes[0, 1].set_xlabel('Epoch')
         axes[0, 1].set_ylabel('Accuracy (%)')
         axes[0, 1].grid(True, alpha=0.3)
@@ -77,26 +81,17 @@ class ModelVisualizer:
         
         # Learning Rate Schedule
         if learning_rates is not None:
-            axes[1, 0].plot(epochs, learning_rates, 'purple', label='Learning Rate', linewidth=2)
-            axes[1, 0].set_title('Learning Rate Schedule', fontsize=14, fontweight='bold')
+            axes[1, 0].plot(epochs, learning_rates, 'purple', label='LR', linewidth=2)
+            axes[1, 0].set_title('Learning Rate', fontsize=14, fontweight='bold')
             axes[1, 0].set_xlabel('Epoch')
-            axes[1, 0].set_ylabel('Learning Rate')
+            axes[1, 0].set_ylabel('LR')
             axes[1, 0].grid(True, alpha=0.3)
             axes[1, 0].legend()
         else:
             axes[1, 0].axis('off')
         
-        
-        # Test Accuracy only (bottom-right)
-        if test_accuracies is not None and len(test_accuracies) == len(train_accuracies):
-            axes[1, 1].plot(epochs, test_accuracies, 'b-', label='Test Accuracy', linewidth=2)
-            axes[1, 1].set_title('Test Accuracy', fontsize=14, fontweight='bold')
-            axes[1, 1].set_xlabel('Epoch')
-            axes[1, 1].set_ylabel('Accuracy (%)')
-            axes[1, 1].grid(True, alpha=0.3)
-            axes[1, 1].legend()
-        else:
-            axes[1, 1].axis('off')
+        # Empty or future use panel
+        axes[1, 1].axis('off')
         
         plt.tight_layout()
         
