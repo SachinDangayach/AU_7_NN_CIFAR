@@ -1,420 +1,70 @@
 # Advanced CIFAR-10 Classification Project
 
-## Overview
+## 🎯 Overview
 
-This project implements an advanced CIFAR-10 classification model with a **C1C2C3C4 architecture**, incorporating modern deep learning techniques and data augmentation strategies. The project follows best practices for code organization, documentation, and modularity.
+This project implements a **C1C2C3C4 CNN architecture** for CIFAR-10 classification, achieving **86.62% test accuracy** with only **162,458 parameters** (under 200k limit). The model uses advanced techniques including Depthwise Separable Convolutions, Dilated Convolutions, and Global Average Pooling.
 
-## 🎯 Project Objectives & Key Features
+## ✅ Key Achievements
 
-### Objectives
-- Achieve ≥ 85% test accuracy on CIFAR-10
-- Keep parameters < 200k (achieved: 162,458 parameters)
-- Ensure receptive field > 44 (achieved: RF = 45)
-- Use C1C2C3C4 architecture without MaxPooling
-- Include Depthwise Separable Conv (C2) and Dilated Convs (C3/C4)
-- Use Global Average Pooling (GAP) with optional FC layer
-- Implement Albumentations pipeline (Horizontal Flip, ShiftScaleRotate, CoarseDropout)
-
-### Key Features
-- **C1C2C3C4 Network**: Sequential convolutional blocks with advanced techniques
-- **Depthwise Separable Convolution**: Implemented in C2 block for parameter efficiency
-- **Dilated Convolutions**: Used in C3 (d=2) and C4 (d=4,8) blocks for increased receptive field
-- **Global Average Pooling**: Compulsory spatial dimension reduction
-- **Linear Classification Head**: Optional FC layer after GAP
-- **Advanced Data Augmentation**: Albumentations with dataset-specific parameters
-- **Optimized Training**: OneCycleLR scheduler (base lr=0.003, max_lr=0.2) for faster convergence
-- **Comprehensive Visualization**: Training curves, per-class accuracy, misclassified images
-- **Interactive Training**: Jupyter notebook for end-to-end experimentation
-
-## ✅ Requirements Compliance
-
-### Architecture Requirements
-- **C1C2C3C4 Structure**: Implemented without MaxPooling ✓
-- **Dilated Convolutions**: Used instead of MaxPooling for downsampling ✓
-- **Receptive Field**: Total RF > 44 (achieved RF = 45) ✓
-- **Parameter Efficiency**: < 200k parameters (achieved 162,458 parameters) ✓
-
-### Advanced Convolutions
-- **Depthwise Separable Convolution**: Implemented in C2 block ✓
-- **Dilated Convolution**: Implemented in C3 (d=2) and C4 (d=4,8) blocks ✓
-- **Global Average Pooling**: Compulsory with optional FC layer ✓
-
-### Data Augmentation (Albumentation)
-- **Horizontal Flip**: p=0.5 ✓
-- **ShiftScaleRotate**: shift_limit=0.1, scale_limit=0.1, rotate_limit=10, p=0.5 ✓
-- **CoarseDropout**: max_holes=1, max_height=16px, max_width=16px, fill_value=dataset_mean, p=0.3 ✓
-
-### Performance Target
-- **Accuracy Goal**: 85% (achievable with OneCycleLR training) ✓
-- **Parameter Limit**: < 200k parameters ✓
-
-### Code Quality
-- **Modular Design**: Well-organized, reusable modules ✓
-- **Comprehensive Documentation**: All functions and classes documented ✓
-- **Configuration Management**: Centralized config system ✓
-- **Best Practices**: Following Python and PyTorch best practices ✓
-
-## 📁 Project Structure
-
-```
-AU_7_NN_CIFAR/
-├── src/                           # Source code package
-│   ├── models/                    # Model architecture
-│   │   ├── __init__.py
-│   │   └── model.py              # CIFAR-10 model architecture
-│   ├── data/                      # Data handling
-│   │   ├── __init__.py
-│   │   └── data_manager.py        # Data loading & augmentation
-│   ├── training/                  # Training pipeline
-│   │   ├── __init__.py
-│   │   └── trainer.py             # Training & validation
-│   ├── visualization/              # Visualization tools
-│   │   ├── __init__.py
-│   │   └── visualizer.py           # Plots & analysis
-│   ├── utils/                     # Utility functions
-│   │   ├── __init__.py
-│   │   └── utils.py               # Helper functions
-│   └── __init__.py
-├── data/                          # Dataset storage
-│   └── cifar-10-batches-py/      # CIFAR-10 dataset files
-├── config.py                      # Configuration management
-├── main.py                        # Main training script
-├── test_model.py                  # Model testing script
-├── interactive-training.ipynb     # Interactive training notebook
-├── requirements.txt               # Dependencies
-├── best_model.pth                 # Best trained model checkpoint
-├── training.log                   # Training logs
-└── README.md                      # This file
-```
+| Metric | Target | Achieved | Status |
+|--------|--------|----------|--------|
+| **Test Accuracy** | ≥85% | **86.62%** | ✅ |
+| **Parameters** | <200k | **162,458** | ✅ |
+| **Receptive Field** | >44 | **45** | ✅ |
+| **Training Epochs** | - | **26** | ✅ |
 
 ## 🏗️ Model Architecture
 
 ### C1C2C3C4 Structure
-The `CIFAR10Net` model follows a specific convolutional block pattern with advanced techniques:
-
 ```
 Input Image (32×32×3)
 │
-┌───▼────────────────────────┐
-│ C1: Initial Feature Block │ ◄── 3→16 channels
-│ • Conv3×3 + BN + ReLU     │ RF: 3→5
-│ • Conv3×3 + BN + ReLU     │ Params: 2,784
-└───┬────────────────────────┘
+├── C1: Initial Features (3→16, RF: 3→5)
+│   ├── Conv3×3 + BN + ReLU + Dropout
+│   └── Conv3×3 + BN + ReLU + Dropout
 │
-┌───▼────────────────────────┐
-│ C2: Depthwise Separable     │ ◄── 16→32 channels
-│ • DW Conv3×3 (groups=16)   │ RF: 5→11
-│ • PW Conv1×1 + BN + ReLU   │ Params: 10,368
-│ • Conv3×3 + BN + ReLU      │
-└───┬────────────────────────┘
+├── C2: Depthwise Separable (16→32, RF: 5→11)
+│   ├── DW Conv3×3 (groups=16) + PW Conv1×1
+│   └── Conv3×3 + BN + ReLU + Dropout
 │
-┌───▼────────────────────────┐
-│ C3: Dilated Convolutions    │ ◄── 32→48 channels
-│ • Conv3×3 + BN + ReLU       │ RF: 11→19
-│ • Dilated Conv (d=2)        │ Params: 61,680
-│ • Conv3×3 + BN + ReLU       │
-└───┬────────────────────────┘
+├── C3: Dilated Convolutions (32→48, RF: 11→19)
+│   ├── Conv3×3 + BN + ReLU + Dropout
+│   ├── Dilated Conv3×3 (d=2) + BN + ReLU + Dropout
+│   └── Conv3×3 + BN + ReLU + Dropout
 │
-┌───▼────────────────────────┐
-│ C4: High Dilation Block     │ ◄── 48→56 channels
-│ • Dilated Conv (d=4)        │ RF: 19→45
-│ • Conv3×3 + BN + ReLU       │ Params: 99,568
-│ • Dilated Conv (d=8)        │
-│ • Conv1×1 + BN + ReLU       │
-└───┬────────────────────────┘
+├── C4: High Dilation Block (48→56, RF: 19→45)
+│   ├── Dilated Conv3×3 (d=4) + BN + ReLU + Dropout
+│   ├── Conv3×3 + BN + ReLU + Dropout
+│   ├── Dilated Conv3×3 (d=8) + BN + ReLU + Dropout
+│   └── Conv1×1 + BN + ReLU + Dropout
 │
-┌───▼────────────────────────┐
-│ Global Average Pooling      │ ◄── Spatial→Vector
-│ Output: 56×1×1              │ Params: 0
-└───┬────────────────────────┘
-│
-┌───▼────────────────────────┐
-│ Fully Connected Layer       │ ◄── 56→10 classes
-│ Output: Class Scores        │ Params: 570
-└────────────────────────────┘
+├── Global Average Pooling (32×32×56 → 1×1×56)
+└── Linear Classifier (56 → 10)
 ```
 
-### Detailed Layer Specifications
+### Advanced Features
+- **Depthwise Separable Convolution**: Parameter-efficient feature extraction
+- **Dilated Convolutions**: Multi-scale receptive field (d=2,4,8)
+- **Global Average Pooling**: Spatial dimension reduction
+- **No MaxPooling**: Uses dilated convolutions for downsampling
 
-#### Conv Block 1 (C1) - Initial Feature Extraction
-- **Input**: 3×32×32
-- **Output**: 32×32×16
-- **Receptive Field**: 3→5
-- **Parameters**: 2,784
-- **Layers**: 2× Conv2d(3x3) + ReLU + BatchNorm + Dropout(0.05)
-- **Purpose**: Basic feature extraction from raw RGB input
+## 📊 Training Results
 
-#### Conv Block 2 (C2) - Depthwise Separable Convolution
-- **Input**: 32×32×16
-- **Output**: 32×32×32
-- **Receptive Field**: 5→11
-- **Parameters**: 10,368
-- **Feature**: Depthwise Separable Convolution (parameter-efficient)
-- **Layers**: DepthwiseSeparableConv + Conv2d + Conv2d + ReLU + BatchNorm + Dropout(0.05)
-- **Purpose**: Efficient feature expansion with reduced parameters
+### Training Curves
+![Training Curves](training_curves.png)
 
-#### Conv Block 3 (C3) - Dilated Convolution
-- **Input**: 32×32×32
-- **Output**: 32×32×48
-- **Receptive Field**: 11→19
-- **Parameters**: 61,680
-- **Feature**: Dilated Convolution (dilation=2)
-- **Layers**: Conv2d + Conv2d(dilation=2) + Conv2d + ReLU + BatchNorm + Dropout(0.05)
-- **Purpose**: Increased receptive field without downsampling
+### Per-Class Accuracy
+![Per-Class Accuracy](per_class_accuracy.png)
 
-#### Conv Block 4 (C4) - High Dilation Block
-- **Input**: 32×32×48
-- **Output**: 32×32×56
-- **Receptive Field**: 19→45
-- **Parameters**: 99,568
-- **Feature**: Multiple dilations (d=4, d=8) + 1×1 convolution
-- **Layers**: DilatedConv(d=4) + Conv2d + DilatedConv(d=8) + Conv1x1 + ReLU + BatchNorm + Dropout(0.05)
-- **Purpose**: Maximum receptive field expansion with multi-scale features
-
-#### Output Block
-- **Global Average Pooling**: 32×32×56 → 1×1×56
-- **FC Layer**: 56 → 10
-- **Total Parameters**: 162,458 (well under 200k limit)
-
-### Receptive Field Calculations
-The receptive field grows through each layer following the formula: `RF_new = RF_old + (kernel_size - 1) * stride_old * dilation`
-
-| Layer | Kernel Size | Stride | Dilation | RF Calculation | RF Value |
-|-------|-------------|--------|----------|----------------|----------|
-| Input | - | - | - | - | 1 |
-| C1.1 | 3×3 | 1 | 1 | 1 + (3-1)×1×1 | 3 |
-| C1.2 | 3×3 | 1 | 1 | 3 + (3-1)×1×1 | 5 |
-| C2.1 (Depthwise) | 3×3 | 1 | 1 | 5 + (3-1)×1×1 | 7 |
-| C2.1 (Pointwise) | 1×1 | 1 | 1 | 7 + (1-1)×1×1 | 7 |
-| C2.2 | 3×3 | 1 | 1 | 7 + (3-1)×1×1 | 9 |
-| C2.3 | 3×3 | 1 | 1 | 9 + (3-1)×1×1 | 11 |
-| C3.1 | 3×3 | 1 | 1 | 11 + (3-1)×1×1 | 13 |
-| C3.2 (Dilated) | 3×3 | 1 | 2 | 13 + (3-1)×1×2 | 17 |
-| C3.3 | 3×3 | 1 | 1 | 17 + (3-1)×1×1 | 19 |
-| C4.1 (Dilated) | 3×3 | 1 | 4 | 19 + (3-1)×1×4 | 27 |
-| C4.2 | 3×3 | 1 | 1 | 27 + (3-1)×1×1 | 29 |
-| C4.3 (Dilated) | 3×3 | 1 | 8 | 29 + (3-1)×1×8 | 45 |
-| C4.4 | 1×1 | 1 | 1 | 45 + (1-1)×1×1 | 45 |
-| GAP | - | - | - | No change | 45 |
-
-### Model Summary
-- **Total Parameters**: 162,458 (well under 200k limit)
-- **Receptive Field**: 45 (exceeds >44 requirement ✓)
-- **Input Size**: 32x32x3 (CIFAR-10 standard)
-- **Output**: 10 classes (CIFAR-10 categories)
-- **Architecture Compliance**: ✅ C1C2C3C4 structure
-- **Advanced Features**: ✅ Depthwise Separable + Dilated Convolution + GAP
-
-## 🚀 Quick Start
-
-### 1. Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd AU_7_CIFAR
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Or use the installation script
-chmod +x install.sh
-./install.sh
+### Training Logs (Sample)
+```
+Epoch 1/30: Train=24.36%, Test=36.25%, LR=0.013793
+Epoch 5/30: Train=58.04%, Test=67.17%, LR=0.120717
+Epoch 10/30: Train=72.05%, Test=77.03%, LR=0.198877
+Epoch 26/30: Train=85.23%, Test=86.62%, LR=0.045123
 ```
 
-### 2. Test the Model Architecture
-
-```bash
-# Test model architecture and requirements
-python test_model.py
-
-# Test with verbose output
-python test_model.py --verbose
-```
-
-### 3. Train the Model
-
-```bash
-# Train with default settings (up to 100 epochs or test≥85% + 3 epochs)
-python main.py
-
-# Train with custom parameters
-python main.py --epochs 50 --lr 0.1 --batch-size 128
-
-# Test only (no training)
-python main.py --test-only
-```
-
-### 4. Interactive Training with Jupyter Notebook
-
-```bash
-# Start Jupyter
-jupyter notebook
-
-# Open interactive-training.ipynb for end-to-end training
-```
-
-The interactive notebook provides:
-- **Complete Training Pipeline**: Setup, training, and visualization in one place
-- **Configurable Parameters**: Easy parameter modification for experimentation
-- **Real-time Monitoring**: Live training progress with metrics
-- **Comprehensive Analysis**: Training curves, per-class accuracy, misclassified images
-- **Model Architecture Summary**: Detailed layer-by-layer breakdown
-
-## 📊 Usage Examples
-
-### Basic Training
-
-```python
-from config import get_config
-from src.models import create_model
-from src.data import create_data_manager
-from src.training import create_trainer
-from src.utils import get_device
-
-# Load configuration
-config = get_config()
-
-# Setup device
-device = get_device()
-
-# Create model
-model = create_model(config.model).to(device)
-
-# Setup data
-data_manager = create_data_manager(config.data)
-train_loader, test_loader = data_manager.setup_data()
-
-# Train model
-trainer = create_trainer(model, config.training, device)
-metrics = trainer.train(train_loader, test_loader)
-```
-
-### Custom Configuration
-
-```python
-from config import ModelConfig, DataConfig, TrainingConfig, ProjectConfig
-
-# Create custom configuration
-model_config = ModelConfig(
-    dropout_rate=0.05,
-    c2_out_channels=96,
-    c3_dilation=3
-)
-
-data_config = DataConfig(
-    batch_size=64,
-    horizontal_flip_prob=0.3
-)
-
-training_config = TrainingConfig(
-    epochs=100,
-    learning_rate=0.05
-)
-
-# Use custom config
-config = ProjectConfig(
-    model=model_config,
-    data=data_config,
-    training=training_config
-)
-```
-
-## 🔧 Configuration
-
-The project uses a centralized configuration system in `config.py`:
-
-### Model Configuration
-```python
-@dataclass
-class ModelConfig:
-    # Model architecture
-    input_channels: int = 3
-    num_classes: int = 10
-    dropout_rate: float = 0.05
-    
-    # Conv Block channels (optimized for < 200K parameters)
-    c1_out_channels: int = 8       # Conv Block 1
-    c2_out_channels: int = 12      # Conv Block 2 (Depthwise Separable)
-    c3_out_channels: int = 16      # Conv Block 3 (Dilated)
-    c4_out_channels: int = 24      # Conv Block 4 (Stride=2)
-    c5_out_channels: int = 32      # Conv Block 5 (Optimized with stride=2)
-    
-    # Special parameters
-    c3_dilation: int = 2          # Dilated convolution
-    c4_stride: int = 2             # Stride instead of MaxPooling
-    fc_hidden_size: int = 32      # FC layer after GAP
-    
-    # Constraints
-    max_parameters: int = 200000   # Parameter limit
-    min_receptive_field: int = 44 # RF requirement
-```
-
-### Data Configuration
-- **Batch Size**: 128
-- **Augmentation**: Albumentation with horizontal flip, shift/scale/rotate, coarse dropout
-- **Normalization**: CIFAR-10 mean/std values
-
-### Training Configuration
-- **Max Epochs**: 30
-- **Learning Rate**: 0.003 (base)
-- **Max Learning Rate**: 0.2 (OneCycleLR peak)
-- **Scheduler**: OneCycleLR
-- **Target Test Accuracy**: 85%
-- **Post-Target Extra Epochs**: 3
-- **Dropout Rate**: 0.05
-
-## 🏗️ Architecture Optimization & Training Behavior
-
-The model uses an optimized C1C2C3C4 architecture with the following key features:
-
-### Dilated Convolution Strategy
-- **C3 Block**: Uses dilation=2 to increase receptive field without downsampling
-- **C4 Block**: Uses multiple dilations (d=4, d=8) for multi-scale feature extraction
-- **Benefit**: Achieves RF > 44 without MaxPooling or stride=2 operations
-- **Structure**: Maintains 32×32 spatial resolution throughout
-
-### Parameter Efficiency
-- **Channel Sizes**: Optimized progression (16→32→48→56) to keep parameters under 200K
-- **Depthwise Separable**: Used in C2 block for parameter reduction
-- **Current Parameters**: 162,458 (well under 200K limit)
-
-### Training Optimization
-- **OneCycleLR Scheduler**: Fast convergence with base_lr=0.003, max_lr=0.2
-- **Smart Stopping**: Runs until 30 epochs or Test Acc ≥ 85% + 3 extra epochs
-- **Dropout Rate**: 0.05 for regularization without over-suppression
-
-## 📈 Expected Performance
-During training, console displays per-epoch metrics:
-- **Train Accuracy**: Real-time training progress
-- **Test Accuracy**: Validation performance monitoring
-- **Learning Rate**: Dynamic LR adjustment visualization
-
-**Performance Targets**:
-- **Parameters**: 162,458 (< 200k requirement ✓)
-- **Receptive Field**: 45 (> 44 requirement ✓)
-- **Target Test Accuracy**: 85%+ (achieved 86.62% ✓)
-- **Training Time**: ~26 epochs with OneCycleLR scheduler
-
-## 📊 Training Results & Performance
-
-### Training Logs (Sample Output)
-```
-Epoch 1/30: 100%|██████████| 391/391 [00:33<00:00, 11.70it/s, Train=24.36%, Test=36.25%, LR=0.013793]
-Epoch 2/30: 100%|██████████| 391/391 [00:34<00:00, 11.32it/s, Train=36.12%, Test=45.69%, LR=0.030472]
-Epoch 3/30: 100%|██████████| 391/391 [00:38<00:00, 10.22it/s, Train=45.05%, Test=56.03%, LR=0.056025]
-Epoch 4/30: 100%|██████████| 391/391 [00:36<00:00, 10.72it/s, Train=52.55%, Test=60.76%, LR=0.087367]
-Epoch 5/30: 100%|██████████| 391/391 [00:37<00:00, 10.53it/s, Train=58.04%, Test=67.17%, LR=0.120717]
-Epoch 6/30: 100%|██████████| 391/391 [00:37<00:00, 10.56it/s, Train=62.25%, Test=70.14%, LR=0.152049]
-Epoch 7/30: 100%|██████████| 391/391 [00:36<00:00, 10.64it/s, Train=66.09%, Test=72.51%, LR=0.177583]
-Epoch 8/30: 100%|██████████| 391/391 [00:37<00:00, 10.53it/s, Train=68.46%, Test=73.21%, LR=0.194237]
-Epoch 9/30: 100%|██████████| 391/391 [00:36<00:00, 10.63it/s, Train=70.44%, Test=74.69%, LR=0.200000]
-Epoch 10/30: 100%|██████████| 391/391 [00:36<00:00, 10.68it/s, Train=72.05%, Test=77.03%, LR=0.198877]
-...
-Epoch 26/30: 100%|██████████| 391/391 [00:35<00:00, 11.05it/s, Train=85.23%, Test=86.62%, LR=0.045123]
-```
-
-### Final Results Summary
+### Final Results
 ```
 ============================================================
 FINAL RESULTS SUMMARY
@@ -434,144 +84,149 @@ Model Architecture Compliance:
 ✓ Albumentation augmentations: Implemented
 
 Parameter count: 162,458 (< 200,000 requirement: ✓)
-Receptive Field: > 44 (requirement: ✓)
+Receptive Field: 45 (> 44 requirement: ✓)
 
 Data Augmentation Applied:
 ✓ Horizontal Flip: p=0.5
 ✓ ShiftScaleRotate: p=0.5
 ✓ CoarseDropout: p=0.3
-
-✅ Training completed successfully!
 ============================================================
 ```
 
-### Training Progress Analysis
-- **Convergence**: Model achieved target accuracy (85%) by epoch 26
-- **Learning Rate**: OneCycleLR effectively managed learning rate from 0.003 to 0.2
-- **Overfitting**: Minimal gap between train (85.23%) and test (86.62%) accuracy
-- **Efficiency**: Fast convergence with only 26 epochs required
-- **Stability**: Consistent improvement throughout training with no significant plateaus
+## 🚀 Quick Start
 
-### Performance Metrics
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Best Test Accuracy** | 86.62% | ✓ Exceeds 85% target |
-| **Best Epoch** | 26 | ✓ Efficient training |
-| **Total Parameters** | 162,458 | ✓ Under 200k limit |
-| **Receptive Field** | 45 | ✓ Exceeds 44 requirement |
-| **Training Time** | ~26 epochs | ✓ Fast convergence |
+### Installation
+```bash
+git clone https://github.com/SachinDangayach/AU_7_NN_CIFAR.git
+cd AU_7_NN_CIFAR
+pip install -r requirements.txt
+```
 
-## 🧪 Testing
+### Training
+```bash
+# Command line training
+python main.py
 
-The project includes comprehensive testing:
+# Interactive notebook
+jupyter notebook interactive-training.ipynb
+```
 
+### Testing
 ```bash
 # Test model architecture
 python test_model.py
-
-# Test with verbose output
-python test_model.py --verbose
-
-# Test specific components
-python -c "from src.models import create_model; model = create_model(); print('Model test passed!')"
 ```
 
-## 📊 Visualization Features
-
-The project includes comprehensive visualization capabilities:
-
-### Training Analysis
-- **Training Curves**: Loss and accuracy plots with train/test comparison
-- **Learning Rate Schedule**: Dynamic LR visualization (OneCycleLR)
-- **Model Summary**: Detailed architecture breakdown with parameter counts
-
-### Performance Analysis
-- **Per-Class Accuracy**: Class-wise performance analysis
-- **Misclassified Images**: Error analysis with visual examples
-- **Confusion Matrix**: Classification performance visualization
-
-### Data Visualization
-- **Sample Images**: Dataset visualization with augmentation examples
-- **Class Distribution**: Dataset balance analysis
-
-### Interactive Features
-- **Real-time Monitoring**: Live training progress visualization
-- **Configurable Plots**: Customizable visualization parameters
-- **Export Capabilities**: Save plots and analysis results
-
-### Generated Visualizations
-The interactive notebook generates comprehensive visualizations including:
-
-#### Training Curves
-- **Training vs Test Accuracy**: Shows model performance progression
-- **Training vs Test Loss**: Displays loss convergence patterns
-- **Learning Rate Schedule**: OneCycleLR visualization
-- **Combined Progress**: Overview of all metrics
-
-#### Performance Analysis
-- **Per-Class Accuracy**: Individual class performance breakdown
-- **Misclassified Images**: Visual analysis of prediction errors
-- **Confusion Matrix**: Detailed classification performance
-
-#### Sample Training Output
+## 📁 Project Structure
 ```
-Calculating per-class accuracy...
-Collecting misclassified images...
-Displayed 16 misclassified images
+AU_7_NN_CIFAR/
+├── src/
+│   ├── models/model.py          # C1C2C3C4 architecture
+│   ├── data/data_manager.py     # Data loading & augmentation
+│   ├── training/trainer.py      # Training pipeline
+│   └── visualization/visualizer.py  # Plots & analysis
+├── config.py                    # Configuration management
+├── main.py                      # Main training script
+├── interactive-training.ipynb   # Interactive training
+├── requirements.txt             # Dependencies
+└── README.md                    # This file
 ```
 
-## 🔍 Key Features
+## 🔧 Configuration
 
-### 1. Modular Design
-- Separate modules for different functionalities
-- Clean interfaces between components
-- Easy to extend and modify
+### Model Configuration
+```python
+@dataclass
+class ModelConfig:
+    # Architecture
+    c1_out_channels: int = 16
+    c2_out_channels: int = 32
+    c3_out_channels: int = 48
+    c4_out_channels: int = 56
+    
+    # Advanced features
+    c3_dilation: int = 2
+    c4_dilation_1: int = 4
+    c4_dilation_2: int = 8
+    dropout_rate: float = 0.05
+    
+    # Constraints
+    max_parameters: int = 200000
+    min_receptive_field: int = 44
+```
 
-### 2. Comprehensive Documentation
-- Docstrings for all functions and classes
-- Type hints for better code clarity
-- Usage examples and explanations
+### Training Configuration
+```python
+@dataclass
+class TrainingConfig:
+    max_epochs: int = 30
+    learning_rate: float = 0.003
+    max_lr: float = 0.2
+    scheduler_type: str = "OneCycleLR"
+    target_test_accuracy: float = 85.0
+```
 
-### 3. Configuration Management
-- Centralized configuration system
-- Easy parameter modification
-- Configuration validation
+## 📈 Performance Analysis
 
-### 4. Advanced Training
-- **OneCycleLR Scheduler**: Optimized learning rate schedule for faster convergence
-- **Automatic Checkpointing**: Best model saving with comprehensive metrics
-- **Smart Early Stopping**: Target-based stopping with extra epochs
-- **Real-time Monitoring**: Live training progress with detailed metrics
+### Training Efficiency
+- **Convergence**: Achieved 85% accuracy in 26 epochs
+- **Learning Rate**: OneCycleLR (0.003 → 0.2 → 0.003)
+- **Overfitting**: Minimal gap (85.23% train vs 86.62% test)
+- **Stability**: Consistent improvement throughout training
 
-### 5. Data Augmentation
-- **Albumentation Integration**: Advanced augmentation pipeline
-- **Configurable Parameters**: Easy adjustment of augmentation strength
-- **Dataset-Specific Normalization**: CIFAR-10 mean/std values
-- **Augmentation Techniques**: Horizontal flip, shift/scale/rotate, coarse dropout
-
-### 6. Interactive Development
-- **Jupyter Notebook**: End-to-end training and analysis
-- **Configurable Parameters**: Easy experimentation with different settings
-- **Comprehensive Visualization**: Training curves, per-class accuracy, misclassified images
-- **Model Architecture Summary**: Detailed layer-by-layer breakdown
+### Architecture Efficiency
+- **Parameter Efficiency**: 162,458 parameters (81% of limit)
+- **Receptive Field**: 45 (exceeds 44 requirement)
+- **Memory Usage**: Efficient with GAP instead of FC layers
+- **Training Speed**: ~11-12 iterations/second on GPU
 
 ## 🛠️ Dependencies
 
-### Core Dependencies
+### Core
 - **PyTorch**: Deep learning framework
-- **Torchvision**: Computer vision utilities and datasets
-- **Albumentation**: Advanced data augmentation library
+- **Torchvision**: Computer vision utilities
+- **Albumentation**: Advanced data augmentation
 - **NumPy**: Numerical computing
 
-### Visualization & Analysis
+### Visualization
 - **Matplotlib**: Plotting and visualization
 - **Seaborn**: Statistical visualization
-- **Pillow**: Image processing
-
-### Development & Utilities
-- **TQDM**: Progress bars for training loops
 - **Jupyter**: Interactive notebook environment
-- **Dataclasses**: Configuration management
+
+## 📚 Key Features
+
+### 1. Advanced Architecture
+- C1C2C3C4 structure without MaxPooling
+- Depthwise Separable Convolutions for parameter efficiency
+- Dilated Convolutions for multi-scale feature extraction
+- Global Average Pooling for spatial dimension reduction
+
+### 2. Optimized Training
+- OneCycleLR scheduler for fast convergence
+- Smart early stopping with target-based termination
+- Comprehensive metrics tracking and visualization
+- Automatic best model checkpointing
+
+### 3. Data Augmentation
+- Albumentation library integration
+- Horizontal flip, shift/scale/rotate, coarse dropout
+- Dataset-specific normalization (CIFAR-10 mean/std)
+- Configurable augmentation parameters
+
+### 4. Interactive Development
+- Jupyter notebook for end-to-end training
+- Real-time training progress visualization
+- Per-class accuracy analysis
+- Misclassified image visualization
+
+## 🎉 Project Highlights
+
+- **Advanced Architecture**: C1C2C3C4 with modern CNN techniques
+- **Parameter Efficiency**: 162,458 parameters (under 200k limit)
+- **High Performance**: 86.62% accuracy (exceeds 85% target)
+- **Fast Training**: 26 epochs with OneCycleLR scheduler
+- **Comprehensive Analysis**: Interactive notebook with visualizations
+- **Code Quality**: Modular design with comprehensive documentation
 
 ## 📝 License
 
@@ -585,30 +240,6 @@ This project is part of the EVA5 course curriculum and follows the specified req
 4. Test the model architecture
 5. Submit a pull request
 
-## 📚 References
-
-- PyTorch documentation
-- Albumentation library documentation
-- CIFAR-10 dataset paper
-
-## 🎉 Acknowledgments
-
-- PyTorch team for the deep learning framework
-- Albumentation team for the data augmentation library
-- CIFAR-10 dataset creators
-
 ---
 
-## 🎉 Project Highlights
-
-This project successfully demonstrates:
-
-- **Advanced Architecture**: C1C2C3C4 network with Depthwise Separable and Dilated Convolutions
-- **Parameter Efficiency**: 162,458 parameters (well under 200k limit)
-- **Receptive Field**: RF=45 (exceeds >44 requirement)
-- **Modern Training**: OneCycleLR scheduler for optimal convergence
-- **Comprehensive Analysis**: Interactive notebook with detailed visualizations
-- **Code Quality**: Modular design with comprehensive documentation
-- **Performance**: Achieves 85%+ accuracy target with proper training
-
-**Note**: This project successfully meets all specified requirements including the C1C2C3C4 architecture, advanced convolutions, data augmentation, and performance targets while maintaining high code quality and modularity.
+**Note**: This project successfully demonstrates advanced CNN architecture design, achieving high performance while maintaining parameter efficiency and code quality.
