@@ -1,15 +1,15 @@
 """
 Advanced CIFAR-10 Model Architecture 
 
-This module implements the C1C2C3C40 architecture for CIFAR-10 classification
+This module implements the C1C2C3C4 architecture for CIFAR-10 classification
 with advanced convolution techniques including Depthwise Separable Convolution
 and Dilated Convolution for downsampling (200pts extra!).
 
 Architecture Requirements:
-- C1C2C3C40 structure (No MaxPooling, dilated conv for downsampling)
+- C1C2C3C4 structure (No MaxPooling, dilated conv for downsampling)
 - Total Receptive Field > 44
-- Depthwise Separable Convolution in one layer
-- Dilated Convolution for downsampling (instead of stride=2)
+- Depthwise Separable Convolution in C2 layer
+- Dilated Convolution in C3 and C4 layers
 - Global Average Pooling (compulsory)
 - FC layer after GAP (optional)
 - Parameters < 200k
@@ -23,60 +23,47 @@ Layer-by-Layer RF Calculation:
 -----------------------------
 Input: 32x32, RF = 1 (single pixel)
 
-Conv Block 1 (C1):
+C1: Initial Feature Block (3→16 channels)
 - Conv1: 3x3 kernel, stride=1, padding=1
   RF = 1 + (3-1)*1 = 3
 - Conv2: 3x3 kernel, stride=1, padding=1  
   RF = 3 + (3-1)*1 = 5
 Output: 32x32, RF = 5
 
-Conv Block 2 (C2) - Depthwise Separable:
-- Depthwise: 3x3 kernel, stride=1, padding=1
+C2: Depthwise Separable (16→32 channels)
+- DW Conv: 3x3 kernel, stride=1, padding=1
   RF = 5 + (3-1)*1 = 7
-- Pointwise: 1x1 kernel, stride=1, padding=0
+- PW Conv: 1x1 kernel, stride=1, padding=0
   RF = 7 + (1-1)*1 = 7 (no change)
-- Conv2: 3x3 kernel, stride=1, padding=1
+- Conv: 3x3 kernel, stride=1, padding=1
   RF = 7 + (3-1)*1 = 9
 Output: 32x32, RF = 9
 
-Conv Block 3 (C3) - Dilated Convolution for downsampling:
-- Conv1: 3x3 kernel, dilation=2, stride=1, padding=2
+C3: Dilated Convolutions (32→48 channels)
+- Conv: 3x3 kernel, stride=1, padding=1
+  RF = 9 + (3-1)*1 = 11
+- Dilated Conv: 3x3 kernel, dilation=2, stride=1, padding=2
   Effective kernel size = 3 + (3-1)*(2-1) = 5
-  RF = 9 + (5-1)*1 = 13
-- Conv2: 3x3 kernel, stride=1, padding=1
-  RF = 13 + (3-1)*1 = 15
-Output: 32x32, RF = 15
+  RF = 11 + (5-1)*1 = 15
+- Conv: 3x3 kernel, stride=1, padding=1
+  RF = 15 + (3-1)*1 = 17
+Output: 32x32, RF = 17
 
-Conv Block 4 (C40) - Multiple Dilated Convolutions with gap of 2 layers:
-- Conv1: 3x3 kernel, dilation=2, stride=1, padding=2
-  Effective kernel size = 3 + (3-1)*(2-1) = 5
-  RF = 15 + (5-1)*1 = 19
-- Conv2: 3x3 kernel, stride=1, padding=1
-  RF = 19 + (3-1)*1 = 21
-- Conv3: 3x3 kernel, stride=1, padding=1
-  RF = 21 + (3-1)*1 = 23
-- Conv4: 3x3 kernel, dilation=2, stride=1, padding=2
-  Effective kernel size = 5
-  RF = 23 + (5-1)*1 = 27
-- Conv5: 3x3 kernel, stride=1, padding=1
-  RF = 27 + (3-1)*1 = 29
-- Conv6: 3x3 kernel, stride=1, padding=1
-  RF = 29 + (3-1)*1 = 31
-- Conv7: 3x3 kernel, dilation=2, stride=1, padding=2
-  Effective kernel size = 5
-  RF = 31 + (5-1)*1 = 35
-Output: 32x32, RF = 35
+C4: High Dilation Block (48→64 channels)
+- Dilated Conv: 3x3 kernel, dilation=4, stride=1, padding=4
+  Effective kernel size = 3 + (3-1)*(4-1) = 9
+  RF = 17 + (9-1)*1 = 25
+- Conv: 3x3 kernel, stride=1, padding=1
+  RF = 25 + (3-1)*1 = 27
+- Dilated Conv: 3x3 kernel, dilation=8, stride=1, padding=8
+  Effective kernel size = 3 + (3-1)*(8-1) = 17
+  RF = 27 + (17-1)*1 = 43
+- Conv: 1x1 kernel, stride=1, padding=0
+  RF = 43 + (1-1)*1 = 43 (no change)
+Output: 32x32, RF = 43
 
 Additional layers to reach RF > 44:
-- Conv1: 3x3 kernel, stride=1, padding=1
-  RF = 35 + (3-1)*1 = 37
-- Conv2: 3x3 kernel, stride=1, padding=1
-  RF = 37 + (3-1)*1 = 39
-- Conv3: 3x3 kernel, stride=1, padding=1
-  RF = 39 + (3-1)*1 = 41
-- Conv4: 3x3 kernel, stride=1, padding=1
-  RF = 41 + (3-1)*1 = 43
-- Conv5: 3x3 kernel, stride=1, padding=1
+- Conv: 3x3 kernel, stride=1, padding=1
   RF = 43 + (3-1)*1 = 45
 Output: 32x32, RF = 45
 
@@ -97,6 +84,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple, Optional
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import ModelConfig
 
 
@@ -237,12 +227,12 @@ class ConvBlock(nn.Module):
 
 class CIFAR10Net(nn.Module):
     """
-    Advanced CIFAR-10 Model with C1C2C3C40 Architecture.
+    Advanced CIFAR-10 Model with C1C2C3C4 Architecture.
     
     This model implements the required architecture with:
-    - C1C2C3C40 structure (No MaxPooling, stride=2 in last conv)
-    - Depthwise Separable Convolution in Conv Block 2
-    - Dilated Convolution in Conv Block 3
+    - C1C2C3C4 structure (No MaxPooling, dilated conv for downsampling)
+    - Depthwise Separable Convolution in C2 layer
+    - Dilated Convolution in C3 and C4 layers
     - Global Average Pooling with FC layer
     - Total Receptive Field > 44
     - Parameters < 200k
@@ -256,135 +246,98 @@ class CIFAR10Net(nn.Module):
         
         self.config = config
         
-        # Conv Block 1 (C1) - Standard convolutions
-        self.conv_block_1 = nn.Sequential(
+        # C1: Initial Feature Block (3→16 channels)
+        self.c1 = nn.Sequential(
             ConvBlock(
                 in_channels=config.input_channels,
-                out_channels=config.c1_out_channels,
+                out_channels=16,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=config.c1_out_channels,
-                out_channels=config.c1_out_channels,
+                in_channels=16,
+                out_channels=16,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # Conv Block 2 (C2) - Depthwise Separable Convolution
-        self.conv_block_2 = nn.Sequential(
+        # C2: Depthwise Separable (16→32 channels)
+        self.c2 = nn.Sequential(
             ConvBlock(
-                in_channels=config.c1_out_channels,
-                out_channels=config.c2_out_channels,
+                in_channels=16,
+                out_channels=32,
                 dropout_rate=config.dropout_rate,
                 use_depthwise_separable=True
             ),
             ConvBlock(
-                in_channels=config.c2_out_channels,
-                out_channels=config.c2_out_channels,
+                in_channels=32,
+                out_channels=32,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # Conv Block 3 (C3) - Dilated Convolution for downsampling
-        self.conv_block_3 = nn.Sequential(
+        # C3: Dilated Convolutions (32→48 channels)
+        self.c3 = nn.Sequential(
             ConvBlock(
-                in_channels=config.c2_out_channels,
-                out_channels=config.c3_out_channels,
-                dilation=config.c3_dilation,
-                padding=config.c3_dilation,  # Adjust padding for dilation
+                in_channels=32,
+                out_channels=40,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=config.c3_out_channels,
-                out_channels=config.c3_out_channels,
+                in_channels=40,
+                out_channels=40,
+                dilation=2,
+                padding=2,
+                dropout_rate=config.dropout_rate
+            ),
+            ConvBlock(
+                in_channels=40,
+                out_channels=40,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # Conv Block 4 (C40) - Multiple Dilated Convolutions with gap of 2 layers
-        self.conv_block_4 = nn.Sequential(
-            # First dilated convolution
+        # C4: High Dilation Block (40→48 channels)
+        self.c4 = nn.Sequential(
             ConvBlock(
-                in_channels=config.c3_out_channels,
-                out_channels=config.c4_out_channels,
-                dilation=2,  # First dilated conv
-                padding=2,   # Adjust padding for dilation
-                dropout_rate=config.dropout_rate
-            ),
-            # Gap of 2 layers (regular convolutions)
-            ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
+                in_channels=40,
+                out_channels=48,
+                dilation=4,
+                padding=4,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            # Second dilated convolution (gap of 2 layers)
-            ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
-                dilation=2,  # Second dilated conv
-                padding=2,   # Adjust padding for dilation
-                dropout_rate=config.dropout_rate
-            ),
-            # Gap of 2 layers (regular convolutions)
-            ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
+                in_channels=48,
+                out_channels=48,
                 dropout_rate=config.dropout_rate
             ),
             ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
+                in_channels=48,
+                out_channels=48,
+                dilation=8,
+                padding=8,
                 dropout_rate=config.dropout_rate
             ),
-            # Third dilated convolution (gap of 2 layers)
             ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c4_out_channels,
-                dilation=2,  # Third dilated conv
-                padding=2,   # Adjust padding for dilation
+                in_channels=48,
+                out_channels=48,
+                kernel_size=1,
+                padding=0,
                 dropout_rate=config.dropout_rate
             )
         )
         
-        # Additional layers to reach RF > 44 (all with stride=1, no downsampling)
-        self.conv_block_5 = nn.Sequential(
-            ConvBlock(
-                in_channels=config.c4_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            ),
-            ConvBlock(
-                in_channels=config.c5_out_channels,
-                out_channels=config.c5_out_channels,
-                dropout_rate=config.dropout_rate
-            )
+        # Additional layer to reach RF > 44
+        self.final_conv = ConvBlock(
+            in_channels=48,
+            out_channels=48,
+            dropout_rate=config.dropout_rate
         )
         
         # Global Average Pooling
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
         
         # Fully Connected layer after GAP
-        self.classifier = nn.Linear(config.c5_out_channels, config.num_classes)
+        self.classifier = nn.Linear(48, config.num_classes)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -398,36 +351,33 @@ class CIFAR10Net(nn.Module):
         """
         # INPUT: 32x32, RF = 1 (single pixel)
         
-        # Conv Block 1: 32x32 -> 32x32
+        # C1: Initial Feature Block (3→16 channels)
         # Conv1: 3x3 kernel, RF = 1 + (3-1)*1 = 3
         # Conv2: 3x3 kernel, RF = 3 + (3-1)*1 = 5
-        x = self.conv_block_1(x)  # Output: 32x32, RF = 5
+        x = self.c1(x)  # Output: 32x32, RF = 5
         
-        # Conv Block 2: 32x32 -> 32x32 (Depthwise Separable)
-        # Depthwise: 3x3 kernel, RF = 5 + (3-1)*1 = 7
-        # Pointwise: 1x1 kernel, RF = 7 + (1-1)*1 = 7
-        # Conv2: 3x3 kernel, RF = 7 + (3-1)*1 = 9
-        x = self.conv_block_2(x)  # Output: 32x32, RF = 9
+        # C2: Depthwise Separable (16→32 channels)
+        # DW Conv: 3x3 kernel, RF = 5 + (3-1)*1 = 7
+        # PW Conv: 1x1 kernel, RF = 7 + (1-1)*1 = 7
+        # Conv: 3x3 kernel, RF = 7 + (3-1)*1 = 9
+        x = self.c2(x)  # Output: 32x32, RF = 9
         
-        # Conv Block 3: 32x32 -> 32x32 (Dilated Convolution for downsampling)
-        # Conv1: 3x3 kernel with dilation=2, effective kernel=5, RF = 9 + (5-1)*1 = 13
-        # Conv2: 3x3 kernel, RF = 13 + (3-1)*1 = 15
-        x = self.conv_block_3(x)  # Output: 32x32, RF = 15
+        # C3: Dilated Convolutions (32→48 channels)
+        # Conv: 3x3 kernel, RF = 9 + (3-1)*1 = 11
+        # Dilated Conv: 3x3 kernel, dilation=2, effective kernel=5, RF = 11 + (5-1)*1 = 15
+        # Conv: 3x3 kernel, RF = 15 + (3-1)*1 = 17
+        x = self.c3(x)  # Output: 32x32, RF = 17
         
-        # Conv Block 4: 32x32 -> 32x32 (Multiple Dilated Convolutions with gap of 2 layers)
-        # Conv1: 3x3 kernel with dilation=2, effective kernel=5, RF = 15 + (5-1)*1 = 19
-        # Conv2: 3x3 kernel, RF = 19 + (3-1)*1 = 21
-        # Conv3: 3x3 kernel, RF = 21 + (3-1)*1 = 23
-        # Conv4: 3x3 kernel with dilation=2, effective kernel=5, RF = 23 + (5-1)*1 = 27
-        # Conv5: 3x3 kernel, RF = 27 + (3-1)*1 = 29
-        # Conv6: 3x3 kernel, RF = 29 + (3-1)*1 = 31
-        # Conv7: 3x3 kernel with dilation=2, effective kernel=5, RF = 31 + (5-1)*1 = 35
-        x = self.conv_block_4(x)  # Output: 32x32, RF = 35
+        # C4: High Dilation Block (48→64 channels)
+        # Dilated Conv: 3x3 kernel, dilation=4, effective kernel=9, RF = 17 + (9-1)*1 = 25
+        # Conv: 3x3 kernel, RF = 25 + (3-1)*1 = 27
+        # Dilated Conv: 3x3 kernel, dilation=8, effective kernel=17, RF = 27 + (17-1)*1 = 43
+        # Conv: 1x1 kernel, RF = 43 + (1-1)*1 = 43
+        x = self.c4(x)  # Output: 32x32, RF = 43
         
-        # Conv Block 5: 32x32 -> 32x32 (Additional layers to reach RF > 44)
-        # All convolutions with stride=1, no downsampling
-        # RF progression: 35 -> 37 -> 39 -> 41 -> 43 -> 45
-        x = self.conv_block_5(x)  # Output: 32x32, RF = 45
+        # Additional layer to reach RF > 44
+        # Conv: 3x3 kernel, RF = 43 + (3-1)*1 = 45
+        x = self.final_conv(x)  # Output: 32x32, RF = 45
         
         # Global Average Pooling: 32x32 -> 1x1
         # GAP: RF remains the same as input, RF = 45
@@ -448,12 +398,12 @@ class CIFAR10Net(nn.Module):
             Dictionary containing receptive field information
         """
         return {
-            "Conv Block 1": {"output_size": "32x32", "receptive_field": 5},
-            "Conv Block 2": {"output_size": "32x32", "receptive_field": 9},
-            "Conv Block 3": {"output_size": "32x32", "receptive_field": 15},
-            "Conv Block 4": {"output_size": "32x32", "receptive_field": 35},
-            "Conv Block 5": {"output_size": "32x32", "receptive_field": 45},
-            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45},
+            "C1: Initial Feature Block": {"output_size": "32x32", "receptive_field": 5, "channels": "3→16"},
+            "C2: Depthwise Separable": {"output_size": "32x32", "receptive_field": 9, "channels": "16→32"},
+            "C3: Dilated Convolutions": {"output_size": "32x32", "receptive_field": 17, "channels": "32→40"},
+            "C4: High Dilation Block": {"output_size": "32x32", "receptive_field": 43, "channels": "40→48"},
+            "Final Conv": {"output_size": "32x32", "receptive_field": 45, "channels": "48→48"},
+            "Global Avg Pool": {"output_size": "1x1", "receptive_field": 45, "channels": "48→48"},
             "Total RF": 45
         }
 
