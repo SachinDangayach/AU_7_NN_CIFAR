@@ -82,16 +82,16 @@ class TrainingConfig:
     
     # Training settings
     epochs: int = 50  # kept for backward compat / some schedulers
-    max_epochs: int = 50  # hard ceiling for training duration
-    learning_rate: float = 0.01  # Reduced from 0.1 for better stability
+    max_epochs: int = 30  # reduced for faster OneCycle convergence
+    learning_rate: float = 0.003  # base LR (initial optimizer lr)
     momentum: float = 0.9
     weight_decay: float = 1e-4
     
     # Scheduler settings
-    scheduler_type: str = "StepLR"  # Changed to StepLR for step size control
-    max_lr: float = 0.01
-    scheduler_epochs: int = 50
-    step_lr_step_size: int = 10  # Step size of 10 as requested
+    scheduler_type: str = "OneCycleLR"  # switch to OneCycleLR
+    max_lr: float = 0.2  # peak LR for OneCycleLR
+    scheduler_epochs: int = 30
+    step_lr_step_size: int = 10  # retained for compatibility
     
     # Device settings
     device: str = "auto"  # "auto", "cuda", "cpu"
