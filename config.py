@@ -19,7 +19,7 @@ class ModelConfig:
     # Model architecture
     input_channels: int = 3
     num_classes: int = 10
-    dropout_rate: float = 0.1
+    dropout_rate: float = 0.05
     
     # C1: Initial Feature Block (3→16 channels)
     c1_out_channels: int = 16
