@@ -84,6 +84,7 @@ class TrainingMetrics:
         return {
             "best_epoch": best_epoch + 1,
             "best_test_accuracy": self.test_accuracies[best_epoch],
+            "best_val_accuracy": self.test_accuracies[best_epoch],  # alias for backward compatibility
             "train_accuracy_at_best": self.train_accuracies[best_epoch],
             "train_loss_at_best": self.train_losses[best_epoch]
         }
