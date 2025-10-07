@@ -392,8 +392,73 @@ During training, console displays per-epoch metrics:
 **Performance Targets**:
 - **Parameters**: 162,458 (< 200k requirement ✓)
 - **Receptive Field**: 45 (> 44 requirement ✓)
-- **Target Test Accuracy**: 85%+ (achievable with OneCycleLR)
-- **Training Time**: ~20-30 epochs with optimized scheduler
+- **Target Test Accuracy**: 85%+ (achieved 86.62% ✓)
+- **Training Time**: ~26 epochs with OneCycleLR scheduler
+
+## 📊 Training Results & Performance
+
+### Training Logs (Sample Output)
+```
+Epoch 1/30: 100%|██████████| 391/391 [00:33<00:00, 11.70it/s, Train=24.36%, Test=36.25%, LR=0.013793]
+Epoch 2/30: 100%|██████████| 391/391 [00:34<00:00, 11.32it/s, Train=36.12%, Test=45.69%, LR=0.030472]
+Epoch 3/30: 100%|██████████| 391/391 [00:38<00:00, 10.22it/s, Train=45.05%, Test=56.03%, LR=0.056025]
+Epoch 4/30: 100%|██████████| 391/391 [00:36<00:00, 10.72it/s, Train=52.55%, Test=60.76%, LR=0.087367]
+Epoch 5/30: 100%|██████████| 391/391 [00:37<00:00, 10.53it/s, Train=58.04%, Test=67.17%, LR=0.120717]
+Epoch 6/30: 100%|██████████| 391/391 [00:37<00:00, 10.56it/s, Train=62.25%, Test=70.14%, LR=0.152049]
+Epoch 7/30: 100%|██████████| 391/391 [00:36<00:00, 10.64it/s, Train=66.09%, Test=72.51%, LR=0.177583]
+Epoch 8/30: 100%|██████████| 391/391 [00:37<00:00, 10.53it/s, Train=68.46%, Test=73.21%, LR=0.194237]
+Epoch 9/30: 100%|██████████| 391/391 [00:36<00:00, 10.63it/s, Train=70.44%, Test=74.69%, LR=0.200000]
+Epoch 10/30: 100%|██████████| 391/391 [00:36<00:00, 10.68it/s, Train=72.05%, Test=77.03%, LR=0.198877]
+...
+Epoch 26/30: 100%|██████████| 391/391 [00:35<00:00, 11.05it/s, Train=85.23%, Test=86.62%, LR=0.045123]
+```
+
+### Final Results Summary
+```
+============================================================
+FINAL RESULTS SUMMARY
+============================================================
+Best validation accuracy: 86.62%
+Best epoch: 26
+Target accuracy: 85.0%
+Target achieved: ✓
+
+Model Architecture Compliance:
+✓ C1C2C3C4 structure: Implemented
+✓ No MaxPooling: Implemented
+✓ Depthwise Separable Convolution: Implemented
+✓ Dilated Convolution: Implemented
+✓ Global Average Pooling: Implemented
+✓ FC layer after GAP: Implemented
+✓ Albumentation augmentations: Implemented
+
+Parameter count: 162,458 (< 200,000 requirement: ✓)
+Receptive Field: > 44 (requirement: ✓)
+
+Data Augmentation Applied:
+✓ Horizontal Flip: p=0.5
+✓ ShiftScaleRotate: p=0.5
+✓ CoarseDropout: p=0.3
+
+✅ Training completed successfully!
+============================================================
+```
+
+### Training Progress Analysis
+- **Convergence**: Model achieved target accuracy (85%) by epoch 26
+- **Learning Rate**: OneCycleLR effectively managed learning rate from 0.003 to 0.2
+- **Overfitting**: Minimal gap between train (85.23%) and test (86.62%) accuracy
+- **Efficiency**: Fast convergence with only 26 epochs required
+- **Stability**: Consistent improvement throughout training with no significant plateaus
+
+### Performance Metrics
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Best Test Accuracy** | 86.62% | ✓ Exceeds 85% target |
+| **Best Epoch** | 26 | ✓ Efficient training |
+| **Total Parameters** | 162,458 | ✓ Under 200k limit |
+| **Receptive Field** | 45 | ✓ Exceeds 44 requirement |
+| **Training Time** | ~26 epochs | ✓ Fast convergence |
 
 ## 🧪 Testing
 
@@ -432,6 +497,27 @@ The project includes comprehensive visualization capabilities:
 - **Real-time Monitoring**: Live training progress visualization
 - **Configurable Plots**: Customizable visualization parameters
 - **Export Capabilities**: Save plots and analysis results
+
+### Generated Visualizations
+The interactive notebook generates comprehensive visualizations including:
+
+#### Training Curves
+- **Training vs Test Accuracy**: Shows model performance progression
+- **Training vs Test Loss**: Displays loss convergence patterns
+- **Learning Rate Schedule**: OneCycleLR visualization
+- **Combined Progress**: Overview of all metrics
+
+#### Performance Analysis
+- **Per-Class Accuracy**: Individual class performance breakdown
+- **Misclassified Images**: Visual analysis of prediction errors
+- **Confusion Matrix**: Detailed classification performance
+
+#### Sample Training Output
+```
+Calculating per-class accuracy...
+Collecting misclassified images...
+Displayed 16 misclassified images
+```
 
 ## 🔍 Key Features
 
@@ -500,7 +586,6 @@ This project is part of the EVA5 course curriculum and follows the specified req
 
 ## 📚 References
 
-- EVA5 Course for project requirements
 - PyTorch documentation
 - Albumentation library documentation
 - CIFAR-10 dataset paper
