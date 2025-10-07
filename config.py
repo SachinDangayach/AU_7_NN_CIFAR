@@ -22,20 +22,20 @@ class ModelConfig:
     dropout_rate: float = 0.1
     
     # Conv Block 1 (C1) - Standard convolutions
-    c1_out_channels: int = 10
+    c1_out_channels: int = 12
     
     # Conv Block 2 (C2) - Depthwise Separable Convolution
-    c2_out_channels: int = 16
+    c2_out_channels: int = 20
     
     # Conv Block 3 (C3) - Dilated Convolution
-    c3_out_channels: int = 22
+    c3_out_channels: int = 28
     c3_dilation: int = 2
     
     # Conv Block 4 (C40) - Dilated Convolution for downsampling
-    c4_out_channels: int = 28
+    c4_out_channels: int = 36
     
     # Conv Block 5 - Additional layers for RF > 44
-    c5_out_channels: int = 36
+    c5_out_channels: int = 44
     
     # Global Average Pooling + FC
     fc_hidden_size: int = 36
