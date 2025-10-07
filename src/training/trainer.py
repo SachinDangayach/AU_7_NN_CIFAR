@@ -41,6 +41,9 @@ class TrainingMetrics:
         self.train_accuracies: List[float] = []
         self.test_accuracies: List[float] = []
         self.learning_rates: List[float] = []
+        # Backward-compatibility aliases expected by some notebooks
+        self.val_losses: List[float] = []  # we don't compute val loss; keep empty or mirror train loss if needed
+        self.val_accuracies: List[float] = self.test_accuracies  # alias: validation == test in this project
         
     def add_epoch_metrics(
         self,
@@ -64,6 +67,8 @@ class TrainingMetrics:
             self.test_accuracies.append(test_acc)
         else:
             self.test_accuracies.append(float('nan'))
+        # keep val_losses aligned length-wise to avoid indexing errors in plots
+        self.val_losses.append(float('nan'))
         self.learning_rates.append(lr)
     
     def get_best_metrics(self) -> Dict[str, float]:
@@ -103,6 +108,7 @@ class ModelTrainer:
         self.device = device
         self.metrics = TrainingMetrics()
         self.best_test_accuracy = 0.0
+        self.best_val_accuracy = 0.0  # alias for notebooks expecting validation nomenclature
         self.best_epoch = 0
         
         # Setup logging
@@ -295,6 +301,7 @@ class ModelTrainer:
             # Check for best model
             if test_acc is not None and test_acc > self.best_test_accuracy:
                 self.best_test_accuracy = test_acc
+                self.best_val_accuracy = test_acc  # keep alias updated
                 self.best_epoch = epoch + 1
                 
                 if self.config.save_best_model:
